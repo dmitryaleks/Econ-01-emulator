@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Board } from '../src/model/board.js';
-import { CATALOGUE, CUBE_COUNT, MODULE_BY_ID } from '../src/model/catalogue.js';
+import { ALL_MODULES, CATALOGUE, CUBE_COUNT } from '../src/model/catalogue.js';
 import { ANTENNA_ROW, FIXED_NETS, XT_NETS } from '../src/model/panel.js';
 import { PINS, rotatePin, sitesOf } from '../src/model/types.js';
 import { buildNetlist, contactKey } from '../src/netlist/build.js';
@@ -16,7 +16,7 @@ describe('catalogue', () => {
   });
 
   it('declares every element node as a contact or an internal node', () => {
-    for (const def of [...CATALOGUE, MODULE_BY_ID.get('ant')!]) {
+    for (const def of ALL_MODULES) {
       const sites = new Set(sitesOf(def).map((s) => s.node));
       for (const el of def.elements) {
         const nodes = Object.entries(el)
@@ -42,8 +42,8 @@ describe('rotation', () => {
 describe('netlist assembly', () => {
   it('merges two adjacent line links into one net', () => {
     const board = new Board();
-    board.place('j-liniya', { col: 2, row: 2 });
-    board.place('j-liniya', { col: 3, row: 2 });
+    board.place('block_023', { col: 2, row: 2 }); // «Линия»
+    board.place('block_023', { col: 3, row: 2 });
     const net = buildNetlist(board);
 
     const left = net.contactNet.get(contactKey({ col: 2, row: 2 }, 'E'));
@@ -60,7 +60,7 @@ describe('netlist assembly', () => {
 
   it('keeps the two paths of a bridge link separate', () => {
     const board = new Board();
-    board.place('j-mostik', { col: 2, row: 2 });
+    board.place('block_025', { col: 2, row: 2 }); // «Мостик»
     const net = buildNetlist(board);
     const we = net.contactNet.get(contactKey({ col: 2, row: 2 }, 'W'));
     const ns = net.contactNet.get(contactKey({ col: 2, row: 2 }, 'N'));
@@ -73,40 +73,54 @@ describe('netlist assembly', () => {
 
   it('joins all four faces of a cross link', () => {
     const board = new Board();
-    board.place('j-krest', { col: 1, row: 1 });
+    board.place('block_021', { col: 1, row: 1 }); // «Крест»
     const net = buildNetlist(board);
     const nets = PINS.map((p) => net.contactNet.get(contactKey({ col: 1, row: 1 }, p)));
     expect(new Set(nets).size).toBe(1);
   });
 
-  it('gives the blank filler no contacts at all', () => {
+  it('gives «Щель» two separate corner links, not a blank', () => {
     const board = new Board();
-    board.place('j-shchel', { col: 1, row: 1 });
+    board.place('block_022', { col: 1, row: 1 });
     const net = buildNetlist(board);
-    for (const p of PINS) {
-      expect(net.contactNet.get(contactKey({ col: 1, row: 1 }, p))).toBeUndefined();
-    }
+    const at = (p: (typeof PINS)[number]) => net.contactNet.get(contactKey({ col: 1, row: 1 }, p));
+    expect(at('N')).toBeDefined();
+    expect(at('N')).toBe(at('W'));
+    expect(at('E')).toBe(at('S'));
+    expect(at('N')).not.toBe(at('E'));
   });
 
-  it('binds a left-column contact to its XT terminal', () => {
+  it('binds a right-column contact to its XT terminal, and a left-column one to nothing', () => {
     const board = new Board();
-    // Row 0 -> XT1 -> GND.
-    board.place('j-liniya', { col: 0, row: 0 });
+    // Row 0, right edge -> XT1 -> GND.
+    board.place('block_023', { col: 5, row: 0 });
+    board.place('block_023', { col: 0, row: 3 });
     const net = buildNetlist(board);
-    const west = net.contactNet.get(contactKey({ col: 0, row: 0 }, 'W'));
-    expect(west).toBe(net.ground);
+    expect(net.contactNet.get(contactKey({ col: 5, row: 0 }, 'E'))).toBe(net.ground);
     expect(XT_NETS[0]).toBe(FIXED_NETS.GND);
+    const west = net.contactNet.get(contactKey({ col: 0, row: 3 }, 'W'));
+    expect(Object.values(FIXED_NETS)).not.toContain(west);
   });
 
-  it('rotation changes which faces a resistor reaches', () => {
+  it('joins the contacts along the top edge, but not to ground', () => {
+    const board = new Board();
+    board.place('block_023', { col: 0, row: 0 }, 1); // «Линия» turned N-S
+    board.place('block_023', { col: 4, row: 0 }, 1);
+    const net = buildNetlist(board);
+    const left = net.contactNet.get(contactKey({ col: 0, row: 0 }, 'N'));
+    expect(left).toBe(net.contactNet.get(contactKey({ col: 4, row: 0 }, 'N')));
+    expect(left).not.toBe(net.ground);
+  });
+
+  it('rotation changes which faces a module reaches', () => {
     const a = new Board();
-    a.place('r68k-o', { col: 2, row: 2 }, 0); // W-E
+    a.place('block_023', { col: 2, row: 2 }, 0); // «Линия», W-E
     const na = buildNetlist(a);
     expect(na.contactNet.has(contactKey({ col: 2, row: 2 }, 'W'))).toBe(true);
     expect(na.contactNet.has(contactKey({ col: 2, row: 2 }, 'N'))).toBe(false);
 
     const b = new Board();
-    b.place('r68k-o', { col: 2, row: 2 }, 1); // rotated a quarter turn -> N-S
+    b.place('block_023', { col: 2, row: 2 }, 1); // rotated a quarter turn -> N-S
     const nb = buildNetlist(b);
     expect(nb.contactNet.has(contactKey({ col: 2, row: 2 }, 'N'))).toBe(true);
     expect(nb.contactNet.has(contactKey({ col: 2, row: 2 }, 'W'))).toBe(false);
@@ -124,13 +138,21 @@ describe('netlist assembly', () => {
 
   it('places the antenna only in its slot, and reports its windings', () => {
     const board = new Board();
-    expect(board.place('ant', { col: 0, row: 2 })).toBe(false);
-    expect(board.place('ant', { col: 0, row: ANTENNA_ROW })).toBe(true);
+    expect(board.place('block_019', { col: 0, row: 2 })).toBe(false);
+    expect(board.place('block_019', { col: 0, row: ANTENNA_ROW })).toBe(true);
     const net = buildNetlist(board);
     expect(net.antenna).not.toBeNull();
     expect(net.elements.filter((e) => e.kind === 'L')).toHaveLength(3);
-    // The west end of the bar sits on XT6, one side of the tuning capacitor.
-    expect(net.antenna!.tuned[0]).toBe(FIXED_NETS.C10_B);
+    const north = (col: number) => net.contactNet.get(contactKey({ col, row: ANTENNA_ROW }, 'N'));
+    // L1 runs from N2 (joined to N5) to the east end; L2 sits on N3 and N4, apart from L1.
+    expect(net.antenna!.tuned).toEqual([
+      north(1),
+      net.contactNet.get(contactKey({ col: 5, row: ANTENNA_ROW }, 'E')),
+    ]);
+    expect(north(1)).toBe(north(4));
+    expect(net.antenna!.coupling).toEqual([north(2), north(3)]);
+    // Nothing reaches the west end, so the bar alone touches no panel terminal.
+    expect(net.contactNet.has(contactKey({ col: 0, row: ANTENNA_ROW }, 'W'))).toBe(false);
   });
 });
 
@@ -139,21 +161,21 @@ describe('board bookkeeping', () => {
     const board = new Board();
     let placed = 0;
     for (let col = 0; col < 6 && placed < 6; col++) {
-      if (board.place('j-liniya', { col, row: 0 })) placed++;
+      if (board.place('block_023', { col, row: 0 })) placed++;
     }
     // The kit contains four «Линия» links.
     expect(placed).toBe(4);
-    expect(board.remaining('j-liniya')).toBe(0);
+    expect(board.remaining('block_023')).toBe(0);
   });
 
   it('round-trips through the URL serialisation', () => {
     const board = new Board();
-    board.place('r68k-o', { col: 1, row: 1 }, 2);
-    board.place('q315-a', { col: 3, row: 4 }, 1);
+    board.place('block_003', { col: 1, row: 1 }, 2);
+    board.place('block_017', { col: 3, row: 4 }, 1);
     board.controls.volume = 0.6;
     const restored = Board.deserialise(board.serialise());
     expect(restored.placements.size).toBe(2);
-    expect(restored.placements.get('1,1')).toEqual({ moduleId: 'r68k-o', rotation: 2 });
+    expect(restored.placements.get('1,1')).toEqual({ moduleId: 'block_003', rotation: 2 });
     expect(restored.controls.volume).toBeCloseTo(0.6, 5);
   });
 });

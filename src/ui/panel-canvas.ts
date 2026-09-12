@@ -19,8 +19,8 @@ import {
   fieldRectMm,
   type Cell,
 } from '../model/panel.js';
-import { rotatePin, sitesOf, type Pin } from '../model/types.js';
-import { SYMBOLS, type SymbolKey } from './symbols.js';
+import { rotatePin, sitesOf, type ModuleDef, type Pin } from '../model/types.js';
+import { drawModuleSymbol } from './symbols.js';
 import type { Skin } from './skins/skin.js';
 
 export interface HitCell { kind: 'cell'; cell: Cell }
@@ -329,30 +329,24 @@ export class PanelCanvas {
 
   private drawTerminals(s: Skin): void {
     const c = this.ctx;
+    // The outset left-edge contacts are where the supplied leads clip on; they reach nothing.
     for (let row = 0; row < ROWS; row++) {
       const r = cellRectMm({ col: 0, row });
       const hMm = Math.min(6.2, r.h * 0.5);
       const [x, y] = this.toScreen(r.x - 3.0, r.y + r.h / 2 - hMm / 2);
       this.metalTab(x, y, this.px(2.9), this.px(hMm), s, true);
-
-      // The real panel prints nothing beside the terminals, so keep it to a digit on the tab
-      // itself; the schematic skin has room for the full XT label.
-      c.save();
-      c.textBaseline = 'middle';
-      if (s.style.texture) {
-        c.textAlign = 'center';
-        c.fillStyle = 'rgba(255,255,255,0.85)';
-        c.font = `700 ${Math.max(6, this.px(2.0))}px ui-monospace, monospace`;
-        c.fillText(String(row + 1), x + this.px(1.45), y + this.px(hMm / 2));
-      } else {
-        c.textAlign = 'right';
-        c.fillStyle = s.textOnCase;
-        c.font = `${Math.max(5, this.px(2.3))}px ui-monospace, monospace`;
-        const [lx, ly] = this.toScreen(r.x - 3.6, r.y + r.h / 2);
-        c.fillText(XT_LABELS[row] ?? '', lx, ly);
-      }
-      c.restore();
     }
+
+    // The top-edge contacts are joined by one strip.
+    const first = cellRectMm({ col: 0, row: 0 });
+    const last = cellRectMm({ col: COLS - 1, row: 0 });
+    const [sx, sy] = this.toScreen(first.x + first.w / 2, first.y - 1.25);
+    const [ex] = this.toScreen(last.x + last.w / 2, last.y);
+    c.save();
+    c.fillStyle = s.contact.edge;
+    c.globalAlpha = 0.8;
+    c.fillRect(sx, sy, ex - sx, this.px(0.6));
+    c.restore();
 
     for (let col = 0; col < COLS; col++) {
       const top = cellRectMm({ col, row: 0 });
@@ -362,11 +356,28 @@ export class PanelCanvas {
       const [bx, by] = this.toScreen(bot.x + bot.w / 2 - 2.3, bot.y + bot.h + 0.3);
       this.metalTab(bx, by, this.px(4.6), this.px(1.9), s, false);
     }
+    // XT1..XT7, down the right edge. The real panel prints nothing beside them, so the textured
+    // skins keep to a digit; the schematic skin has room for the full label.
     for (let row = 0; row < ROWS; row++) {
       const r = cellRectMm({ col: COLS - 1, row });
       const hMm = Math.min(5.0, r.h * 0.42);
       const [x, y] = this.toScreen(r.x + r.w + 0.4, r.y + r.h / 2 - hMm / 2);
       this.metalTab(x, y, this.px(1.9), this.px(hMm), s, false);
+
+      c.save();
+      c.textBaseline = 'middle';
+      c.textAlign = 'left';
+      c.fillStyle = s.textOnCase;
+      const [lx, ly] = this.toScreen(r.x + r.w + 2.9, r.y + r.h / 2);
+      if (s.style.texture) {
+        c.globalAlpha = 0.75;
+        c.font = `700 ${Math.max(6, this.px(2.0))}px ui-monospace, monospace`;
+        c.fillText(String(row + 1), lx, ly);
+      } else {
+        c.font = `${Math.max(5, this.px(2.3))}px ui-monospace, monospace`;
+        c.fillText(XT_LABELS[row] ?? '', lx, ly);
+      }
+      c.restore();
     }
   }
 
@@ -444,7 +455,7 @@ export class PanelCanvas {
       }
 
       this.drawSymbol(
-        def.symbol as SymbolKey,
+        def,
         r0.x + wMm / 2,
         r0.y + r0.h / 2,
         r0.h * 0.385,
@@ -557,10 +568,8 @@ export class PanelCanvas {
   }
 
   private drawSymbol(
-    key: SymbolKey, cxMm: number, cyMm: number, radiusMm: number, rotation: number, s: Skin,
+    def: ModuleDef, cxMm: number, cyMm: number, radiusMm: number, rotation: number, s: Skin,
   ): void {
-    const draw = SYMBOLS[key];
-    if (!draw) return;
     const c = this.ctx;
     const [x, y] = this.toScreen(cxMm, cyMm);
     const r = this.px(radiusMm);
@@ -575,7 +584,7 @@ export class PanelCanvas {
       c.lineCap = 'butt';
       c.strokeStyle = colour;
       c.fillStyle = colour;
-      draw(c);
+      drawModuleSymbol(c, def);
       c.restore();
     };
 
@@ -913,8 +922,6 @@ export class PanelCanvas {
     c.stroke();
     c.restore();
 
-    const draw = SYMBOLS[def.symbol as SymbolKey];
-    if (!draw) return;
     c.save();
     c.translate(view.dragPos.x, view.dragPos.y);
     c.scale(size * 0.36, size * 0.36);
@@ -922,7 +929,7 @@ export class PanelCanvas {
     c.lineJoin = 'round';
     c.strokeStyle = view.skin.symbol.ink;
     c.fillStyle = view.skin.symbol.ink;
-    draw(c);
+    drawModuleSymbol(c, def);
     c.restore();
   }
 }

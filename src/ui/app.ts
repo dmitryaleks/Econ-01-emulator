@@ -5,12 +5,13 @@ import { Board, POWER_THRESHOLD } from '../model/board.js';
 import { ALL_MODULES, CATALOGUE, MODULE_BY_ID } from '../model/catalogue.js';
 import { ANTENNA_ROW } from '../model/panel.js';
 import type { Cell, } from '../model/panel.js';
-import type { Pin } from '../model/types.js';
+import type { ModuleDef, Pin } from '../model/types.js';
 import { CIRCUITS, loadCircuit } from '../circuits/index.js';
 import { buildNetlist, contactKey, type Netlist } from '../netlist/build.js';
 import { Simulation } from '../sim/transient.js';
 import { PanelCanvas, type Hit, type ViewState } from './panel-canvas.js';
 import { Scope } from './probe.js';
+import { drawModuleSymbol } from './symbols.js';
 import { BLACK } from './skins/black.js';
 import { GREY } from './skins/grey.js';
 import { SCHEMATIC } from './skins/schematic.js';
@@ -113,9 +114,13 @@ export class App {
       el.type = 'button';
       el.dataset['module'] = def.id;
       el.innerHTML =
+        `<span class="part-icon"></span>` +
         `<span class="part-name">${def.caption ?? def.label}</span>` +
         `<span class="part-qty" data-qty></span>`;
-      el.title = def.label;
+      el.title = `${def.label} (${def.id}, ${def.shortId})`;
+      const icon = el.querySelector<HTMLElement>('.part-icon')!;
+      if (def.shape === 'antenna') icon.remove();
+      else icon.style.setProperty('--icon', `url(${symbolMask(def)})`);
       el.addEventListener('pointerdown', (ev) => {
         ev.preventDefault();
         if (this.board.remaining(def.id) <= 0) return;
@@ -415,6 +420,29 @@ export class App {
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
+/**
+ * A module's symbol as an opaque-on-transparent image, used as a CSS mask so the bin icon takes
+ * the text colour of whichever skin is active.
+ */
+function symbolMask(def: ModuleDef): string {
+  const size = 48;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const c = canvas.getContext('2d')!;
+  c.translate(size / 2, size / 2);
+  c.scale(size * 0.47, size * 0.47);
+  c.lineWidth = 0.11;
+  c.lineJoin = 'round';
+  c.strokeStyle = c.fillStyle = '#000';
+  c.beginPath();
+  c.arc(0, 0, 1, 0, Math.PI * 2);
+  c.globalAlpha = 0.35;
+  c.stroke();
+  c.globalAlpha = 1;
+  drawModuleSymbol(c, def);
+  return canvas.toDataURL();
 }
 
 export { CATALOGUE };

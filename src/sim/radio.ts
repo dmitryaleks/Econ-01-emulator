@@ -8,7 +8,7 @@
  * recovered audio envelope as a current into the coupling winding. Off tune gives noise.
  */
 
-import { ANTENNA_EMF } from '../model/catalogue.js';
+import { ANTENNA_EMF } from '../model/types.js';
 import type { Netlist } from '../netlist/build.js';
 import type { Circuit } from './mna.js';
 

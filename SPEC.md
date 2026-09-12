@@ -153,47 +153,55 @@ Four module shapes exist (Рис. 2): `1` antenna module (long bar), `2` кно�
 
 ## 4. Module catalogue (Приложение 2) **[C]**
 
-Pin span is **opposite** (element bridges two opposite faces, e.g. W–E) or **adjacent** (two faces
-at 90°, e.g. N–E). **[I]** — the appendix distinguishes the two variants of each value by drawing
-the element across the diameter versus across a quadrant.
+The authority is the registry `assets/blocks/block_spec.json`: one entry per module type, with the
+icon cropped from Приложение 2, the printed description, structured values and a **confirmed
+face-to-face pinout**. `src/model/catalogue.ts` is generated from it. The icons encode the wiring
+exactly: a line that reaches the rim at N, E, S or W is a contact, a chord near the rim is a plain
+wire between the two faces it joins, and a line that humps over another crosses it without joining.
+Almost every element module therefore carries extra plain wires besides its part, which is how the
+factory layouts route a whole circuit through the field with no leads. Pinouts are given at
+rotation 0, the module turned as its icon is drawn.
 
-| Id | Component | Value | Span | Qty |
+| Block | Component | Value | Pinout at rotation 0 | Qty |
 |---|---|---|---|---|
-| `r22k-o` | Resistor МЛТ-0,5 | 2.2 kΩ ±10 % | opposite | **2** |
-| `r12k-a` | Resistor МЛТ-0,5 | 12 kΩ ±10 % | adjacent | 1 |
-| `r68k-o` | Resistor МЛТ-0,5 | 68 kΩ ±10 % | opposite | 1 |
-| `r68k-a` | Resistor МЛТ-0,5 | 68 kΩ ±10 % | adjacent | 1 |
-| `r680k-o` | Resistor МЛТ-0,5 | 680 kΩ ±10 % | opposite | 1 |
-| `r680k-a` | Resistor МЛТ-0,5 | 680 kΩ ±10 % | adjacent | 1 |
-| `r1m-a` | Resistor МЛТ-0,5 | 1 MΩ ±10 % | adjacent | 1 |
-| `r1m-o` | Resistor МЛТ-0,5 | 1 MΩ ±10 % | opposite | 1 |
-| `c10n-o` | Capacitor К10-7В-Н90 | 0.01 µF | opposite | 1 |
-| `c680p-a` | Capacitor КТ-1-Н70 | 680 pF | adjacent | 1 |
-| `c3n3-o` | Capacitor КТ-1-Н70 | 3300 pF | opposite | 1 |
-| `c10n-a` | Capacitor К10-7В-Н90 | 0.01 µF | adjacent | 1 |
-| `c10n-o2` | Capacitor К10-7В-Н90 | 0.01 µF | opposite | 1 |
-| `c20u-o` | Electrolytic К50-6-1 | 20 µF / 10 V | opposite | 1 |
-| `c20u-a` | Electrolytic К50-6-1 | 20 µF / 10 V | adjacent | 1 |
-| `dd9b` | **Two** diodes Д9Б | germanium point-contact | — | 1 |
-| `q315-a` | Transistor КТ315Б | npn silicon | pinout A | 1 |
-| `q315-b` | Transistor КТ315Б | npn silicon | pinout B | 1 |
-| `ant` | **Magnetic antenna** | ferrite 400НН 8 × 80 mm; L1 = 100 + 230 turns ПЭВ-2 0.16 mm; L2 = 25 turns | — | 1 |
-| `j-ugol` | «Угол» — link between two **adjacent** faces | — | — | 1 |
-| `j-krest` | «Крест» — **all four** faces joined | — | — | 1 |
-| `j-shchel` | «Щель» — **blank**, prising slot only, no connection | — | — | **2** |
-| `j-liniya` | «Линия» — link between two **opposite** faces | — | — | **4** |
-| `j-troynik` | «Тройник» — **three** faces joined (T) | — | — | **4** |
-| `j-mostik` | «Мостик» — **two isolated crossing links** (W–E and N–S, insulated at the crossing) | — | — | **4** |
-| `sb` | «Кнопка» — normally-open pushbutton between two opposite faces | — | — | 1 |
+| `block_001` | Resistor МЛТ-0,5 | 2,2 kΩ ±10 % | R W–E; wires E–N, E–S | **2** |
+| `block_002` | Resistor МЛТ-0,5 | 12 kΩ ±10 % | wire W–E; R E–S | 1 |
+| `block_003` | Resistor МЛТ-0,5 | 68 kΩ ±10 % | R W–E; wires E–N, E–S | 1 |
+| `block_004` | Resistor МЛТ-0,5 | 68 kΩ ±10 % | R N–E; separate wire W–S | 1 |
+| `block_005` | Resistor МЛТ-0,5 | 680 kΩ ±10 % | R W–E; wires W–N, E–S | 1 |
+| `block_006` | Resistor МЛТ-0,5 | 680 kΩ ±10 % | wire W–E; R E–S | 1 |
+| `block_007` | Resistor МЛТ-0,5 | 1 MΩ ±10 % | R N–E; separate wire W–S | 1 |
+| `block_008` | Resistor МЛТ-0,5 | 1 MΩ ±10 % | R W–E; wire E–N | 1 |
+| `block_009` | Capacitor К10-7В-Н90 | 0,01 µF +80/−20 % | C W–E; wires E–N, E–S | 1 |
+| `block_010` | Capacitor КТ-1-Н70 | 680 pF +80/−20 % | wires W–E and N–S, crossing apart; C N–E | 1 |
+| `block_011` | Capacitor КТ-1-Н70 | 3300 pF +80/−20 % | C W–E; wire E–N | 1 |
+| `block_012` | Capacitor К10-7В-Н90 | 0,01 µF +80/−20 % | C W–E; wire E–N | 1 |
+| `block_013` | Capacitor К10-7В-Н90 | 0,01 µF +80/−20 % | C W–E; wire E–S | 1 |
+| `block_014` | Electrolytic К50-6-1 | 20 µF / 10 V | C W(+)–E; wire E–S | 1 |
+| `block_015` | Electrolytic К50-6-1 | 20 µF / 10 V | C W(+)–E; wire E–N | 1 |
+| `block_016` | **Two** diodes Д9Б | germanium point-contact | D W→S, D S→E; wire W–N | 1 |
+| `block_017` | Transistor КТ315Б | npn silicon | base W, collector N, emitter S; wire N–E | 1 |
+| `block_018` | Transistor КТ315Б | npn silicon | base W, collector N, emitter S; wire S–E | 1 |
+| `block_019` | **Magnetic antenna** | ferrite 400НН 8 × 80 mm; ПЭВ-2 0,16 mm | L1 100 turns N2–N6, 230 turns N6–E; wire N2–N5; L2 25 turns N3–N4 | 1 |
+| `block_020` | «Угол» | — | E–S | 1 |
+| `block_021` | «Крест» | — | all four joined | 1 |
+| `block_022` | «Щель» | — | two separate corners, N–W and E–S | **2** |
+| `block_023` | «Линия» | — | W–E | **4** |
+| `block_024` | «Тройник» | — | W, E, S joined | **4** |
+| `block_025` | «Мостик» | — | W–E and N–S, crossing apart | **4** |
+| `block_026` | «Кнопка» | normally open | W, E and S all joined while held | 1 |
+
+The antenna's contacts are named by cell along the bar: N1…N6 on its top edge, left to right,
+and E for its right-hand end. Nothing reaches its W end or its bottom edge.
 
 **Total 36 cube modules + 1 antenna module** — exactly the kit contents. **[C]**
 
 Notes
 - **[C]** The kit contains only **two** transistors, both КТ315Б. The germanium types МП26А, МП38
   and МП42Б belong to the built-in amplifier, not to the modules.
-- **[C]** «Мостик» is what makes non-planar circuits possible on a 2-D grid.
-- **[I]** «Щель» is a blank filler: its symbol shows only the prising slot, with no lead reaching a
-  face contact.
+- **[C]** «Мостик», and the crossing wires in `block_010`, are what make non-planar circuits
+  possible on a 2-D grid.
+- **[C]** A small ring appears on the icons of blocks 003, 004, 006 and 012; its meaning is unknown.
 - **[G]** Д9Б model: `Is ≈ 1e-6 A`, `n ≈ 1.4`, forward drop ≈ 0.25 V.
 - **[G]** КТ315Б model: `βF ≈ 80`, `Is ≈ 1e-14 A`, `Vaf ≈ 100 V`.
 
@@ -216,10 +224,26 @@ presented to the field through terminals **XT1…XT7**.
 | **XT6** | tuning capacitor C10, terminal 2 |
 | **XT7** | common / 0 V (same node as XT1) |
 
-**[I]** The seven terminals are the seven outset contacts down the left edge of the field, top to
-bottom: XT1 beside main-grid row 1 … XT5 beside row 5, XT6 beside the antenna slot, XT7 beside the
-bottom row. This matches Рис. 1, the photographs, and the antenna needing to reach C10 (XT5/XT6)
-from the antenna slot.
+**[I]** The seven terminals are the contacts down the **right** edge of the field, top to bottom:
+XT1 beside main-grid row 1 … XT5 beside row 5, XT6 beside the antenna slot, XT7 beside the bottom
+row. The contacts along the **top** edge are joined to one another by a strip, and to nothing else.
+The contacts down the **left** edge are separate clip points for the leads and reach nothing.
+
+This is read off the factory mounting drawings, traced from module contact alone with the
+confirmed pinouts of §4, and checked against each device's schematic:
+- **Device 6** «Мультивибратор» (p. 15): the supply rail reaches the perimeter only at the right
+  of row 3 (XT3) and the output capacitor only at the right of row 4 (XT4). A collector touches the
+  left contact of row 3, so the left edge cannot carry XT3. The кнопка reaches ground only through
+  the top edge, which a «Щель» in the top-right cell ties to the right of row 1 (XT1).
+- **Device 26** «Электронная няня» (p. 35): the 20 µF capacitor's − side reaches the right of row
+  1 (XT1), the supply the right of row 3 (XT3), the output capacitor the right of row 4 (XT4), the
+  tank node the right of row 5 (XT5), and L1's far end the antenna bar's right end (XT6). The
+  «Вход» leads clip to the left contacts of rows 1 and 4; the ground one reaches XT1 only through
+  the top strip, which the electrolytic in the top-right cell ties to XT1.
+
+Both layouts deliberately tie the top strip to XT1 with a module, so the strip is taken to be wired
+to nothing inside the case. XT2 and XT7 follow by sequence; no layout traced so far touches them
+decisively.
 
 **[C]** In every one of the 30 device schematics the built-in amplifier appears as a dashed box
 labelled **«А»** showing only its XT terminals. Cross-checked: device 1 draws XT1 as its ground,
@@ -323,8 +347,8 @@ and 14.
 
 - 36 cube cells: `main[6×5]` and `bottom[6×1]`, plus `antenna[1]` spanning six columns. **[C]**
 - Every occupied cell contributes four **contact nodes** N/E/S/W. Two orthogonally adjacent
-  occupied cells have their facing contacts shorted. Left-edge perimeter contacts are shorted to
-  XT1…XT7; the remaining perimeter contacts are mechanical only. **[I]**
+  occupied cells have their facing contacts shorted. Right-edge perimeter contacts are shorted to
+  XT1…XT7, top-edge contacts to one shared strip; left-edge contacts reach nothing. **[I]**, §5.1
 - A module declares its elements between its own pin names; **rotation is a cyclic permutation**
   N→E→S→W, so one declaration covers all four orientations.
 - The two supplied leads let the user tie any module contact to any panel contact; modelled as an
@@ -366,13 +390,15 @@ controls that vary a source or a resistance in the netlist.
 
 ## 8. Open questions
 
-1. Exact face-to-face pinout of the "adjacent" module variants, and whether the straight line in
-   those symbols is a second internal conductor (a resistor tee) rather than the prising slot.
-   Resolve by cross-reading a mounting drawing against its schematic.
-2. Which perimeter contacts besides the left-edge seven are electrically live, if any.
+1. ~~Exact face-to-face pinout of the module variants.~~ Resolved: every module's pinout is
+   confirmed in `assets/blocks/block_spec.json` (§4).
+2. Terminal positions are read from two factory layouts (§5.1). Still to confirm against more
+   devices: XT2 and XT7, whether the top strip is wired to anything inside the case, and whether
+   the bottom row's contacts are live.
 3. Titles of devices 7, 16, 21 and 23.
-4. Whether the antenna module presents L1 as a tapped winding (100 + 230) on three separate
-   contacts, and where L2 sits — Приложение 2 draws four contacts on the bar.
+4. ~~How the antenna module presents its windings.~~ Resolved: L1 on N2/N5, tap N6 and E; L2 on
+   N3–N4, apart from L1 (§4).
 5. The interconnections of the built-in amplifier (§5.3). Resolving this needs a cleaner scan of
    Приложение 3, or a photograph of the inner PCB's track side, and would let the five
    transistors be simulated device by device like everything else.
+6. What the small ring on four module icons means (§4).

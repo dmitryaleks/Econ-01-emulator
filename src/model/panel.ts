@@ -8,7 +8,10 @@
  *   row  6     bottom row, 6 columns =  6 cells
  * 36 cube cells in total, matching the 36 modules in the kit.
  *
- * Seven larger, outset contacts run down the left edge, one per row: XT1..XT7.
+ * The seven terminals XT1..XT7 are the contacts down the right edge of the field, one per row.
+ * The contacts along the top edge are joined to each other and to nothing else. The contacts down
+ * the left edge are separate clip points for the supplied leads. Worked out from the factory
+ * mounting drawings of devices 6 and 26 — see SPEC.md §5.1.
  */
 
 import type { Pin } from './types.js';
@@ -88,7 +91,7 @@ export const FIXED_NETS = {
 export type FixedNet = (typeof FIXED_NETS)[keyof typeof FIXED_NETS];
 
 /**
- * The seven left-edge terminals, top to bottom, and the fixed net each is wired to.
+ * The seven right-edge terminals, top to bottom, and the fixed net each is wired to.
  * Index i is the terminal beside field row i.
  */
 export const XT_NETS: readonly FixedNet[] = [
@@ -103,9 +106,16 @@ export const XT_NETS: readonly FixedNet[] = [
 
 export const XT_LABELS = ['XT1', 'XT2', 'XT3', 'XT4', 'XT5', 'XT6', 'XT7'] as const;
 
-/** Which fixed net, if any, a contact on the given cell face reaches through the panel frame. */
-export function panelNetAt(cell: Cell, edge: Pin): FixedNet | null {
-  if (edge === 'W' && cell.col === 0) return XT_NETS[cell.row] ?? null;
+/**
+ * The strip joining the top-edge contacts. Deliberately not a fixed net: it is wired to nothing
+ * inside the case, and the factory layouts tie it to XT1 with a module when they need it.
+ */
+export const TOP_STRIP = 'TOP_STRIP';
+
+/** What a contact on the given cell face reaches through the panel frame, if anything. */
+export function panelNetAt(cell: Cell, edge: Pin): FixedNet | typeof TOP_STRIP | null {
+  if (edge === 'E' && cell.col === COLS - 1) return XT_NETS[cell.row] ?? null;
+  if (edge === 'N' && cell.row === 0) return TOP_STRIP;
   return null;
 }
 

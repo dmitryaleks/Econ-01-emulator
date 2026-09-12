@@ -6,18 +6,18 @@ import { Simulation, rms } from '../src/sim/transient.js';
 
 describe('modules on the field drive the real circuit', () => {
   /**
-   * VCC (XT2, left of row 1) -> 2,2 kΩ -> link -> lead -> XT1 (ground).
+   * VCC (XT2, right of row 1) -> 2,2 kΩ -> link -> lead -> XT1 (ground, right of row 0).
    * Exercises the XT terminals, pad-to-pad adjacency, a supplied lead, the power switch
    * and the solver in one go.
    */
   function loadBoard(volume: number): Board {
     const board = new Board();
     board.controls.volume = volume;
-    board.place('r2k2-o', { col: 0, row: 1 }); // W on XT2, E to the next cell
-    board.place('j-liniya', { col: 1, row: 1 }); // straight through
+    board.place('block_001', { col: 5, row: 1 }, 2); // resistor's single end on XT2, far end W
+    board.place('block_023', { col: 4, row: 1 }); // straight through
     board.leads.push({
-      from: { cell: { col: 1, row: 1 }, edge: 'E' },
-      to: { cell: { col: 0, row: 0 }, edge: 'W' }, // XT1 = ground
+      from: { cell: { col: 4, row: 1 }, edge: 'W' },
+      to: { cell: { col: 5, row: 0 }, edge: 'E' }, // XT1 = ground
     });
     return board;
   }
@@ -101,7 +101,7 @@ describe('antenna and tuning', () => {
   it('finds a station and loses it when detuned', () => {
     const board = new Board();
     board.controls.volume = 0.7;
-    board.place('ant', { col: 0, row: 5 });
+    board.place('block_019', { col: 0, row: 5 });
 
     // Sweep the dial the way a hand would, rather than sampling five points.
     const strengths: number[] = [];

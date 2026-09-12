@@ -7,17 +7,17 @@ import { Simulation } from '../src/sim/transient.js';
 function busyBoard(): Board {
   const board = new Board();
   board.controls.volume = 0.7;
-  board.place('q315-a', { col: 2, row: 2 });
-  board.place('q315-b', { col: 3, row: 2 });
-  board.place('r2k2-o', { col: 1, row: 2 });
-  board.place('r2k2-o', { col: 4, row: 2 });
-  board.place('c10n-o', { col: 1, row: 3 });
-  board.place('c10n-a', { col: 4, row: 3 });
-  board.place('r68k-o', { col: 2, row: 1 });
-  board.place('r680k-o', { col: 3, row: 1 });
-  board.place('j-liniya', { col: 0, row: 1 });
-  board.place('j-troynik', { col: 0, row: 2 });
-  board.place('ant', { col: 0, row: 5 });
+  board.place('block_017', { col: 2, row: 2 });
+  board.place('block_018', { col: 3, row: 2 });
+  board.place('block_001', { col: 1, row: 2 });
+  board.place('block_001', { col: 4, row: 2 });
+  board.place('block_009', { col: 1, row: 3 });
+  board.place('block_012', { col: 4, row: 3 });
+  board.place('block_003', { col: 2, row: 1 });
+  board.place('block_005', { col: 3, row: 1 });
+  board.place('block_023', { col: 0, row: 1 });
+  board.place('block_024', { col: 0, row: 2 });
+  board.place('block_019', { col: 0, row: 5 });
   return board;
 }
 

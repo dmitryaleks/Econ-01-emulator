@@ -73,9 +73,10 @@ quantities sum to 36.
 ## Phase 4 — Netlist builder ✅ done
 
 `netlist/build.ts`: union-find over contact nodes. Each occupied cell contributes four nodes;
-union each with the facing node of its orthogonal neighbour; union left-edge contacts with
-XT1…XT7; apply user leads. Then emit each module's elements between resolved net ids, plus the
-built-in amplifier's fixed subcircuit (SPEC §5.2) and the battery.
+union each with the facing node of its orthogonal neighbour; union right-edge contacts with
+XT1…XT7 and top-edge contacts with their shared strip; apply user leads. Then emit each module's
+elements between resolved net ids, plus the built-in amplifier's fixed subcircuit (SPEC §5.2) and
+the battery.
 
 **Done when**: two adjacent «Линия» links collapse to one net; a «Мостик» keeps its two paths
 distinct; rotating a module changes connectivity as expected; a known manual layout yields the
@@ -113,7 +114,7 @@ Fallback: if a board is too stiff for real time, drop to 12 kHz with 4× interpo
 
 - `ui/panel-canvas.ts` — one Canvas 2D, DPR-aware, hit-testing against `model/panel.ts`. Drag and
   drop from the parts bin, `R` or right-click to rotate, drag the wheels for volume and tuning.
-- `ui/symbols.ts` — one path-drawing function per module symbol, shared by both skins.
+- `ui/symbols.ts` — draws any module's cap symbol from its actual wiring, shared by every skin.
 - `ui/skins/{grey,black,schematic}.ts` — vector-drawn, no photo assets. The grey skin is matched
   to `assets/the-original-econ-01-body.jpg`: matte grey case, dimpled carry rail, boxed badge,
   hex speaker grille with six moulded bridges, bronze contacts, pale lemon domed module caps and
@@ -130,32 +131,32 @@ Transcribe the 30 mounting drawings from `research/manual/book/10…39.png` into
 `src/circuits/` (Russian title, description, cube placements with rotations, expected behaviour).
 Loading a preset fills the board; the solver still runs it for real.
 
-Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`) and two circuits.
+Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`), the module
+registry, the panel terminal map, and two circuits.
 
-- **Детекторный приёмник** — kit-legal reconstruction, fully working: it proves the whole chain
-  end to end (antenna → tuned circuit → Д9Б → XT4 → amplifier → loudspeaker) and demonstrably
-  goes quiet when you tune off station.
-- **Мультивибратор (устройство 6)** — the first genuine factory circuit. Topology transcribed
-  from `assets/multivibrator-schematics-raw.png` (asymmetric arms, 12 кОм / 0,01 мкФ against
-  68 кОм / 3300 пФ, кнопка in the common emitter return so the oscillator has no path to ground
-  until it's held); physical layout follows the general scheme of the factory mounting drawing
-  `assets/multivibrator-chart.png` (emitter bus and both transistors along the top, collector
-  loads reached from below), built with real link-cube adjacency rather than loose wires —
-  it uses all four «Тройник», all four «Линия», the one «Угол» and the one «Крест» the box
-  contains. Six lead wires remain, all long jumps (a base-bias resistor or a cross-coupling
-  capacitor reaching the supply rail or the opposite transistor's base), not substitutes for
-  adjacency — the box ships two, so this is honestly `kitLegal: false`. Its netlist is verified
-  component by component against the schematic; it does not yet make a sound, see the defect
+- **Module registry** — `assets/blocks/block_spec.json` holds every module type with a confirmed
+  face-to-face pinout, and `src/model/catalogue.ts` is generated from it. Module ids are the
+  registry's block names (`block_001` …). Cap symbols are drawn from each module's real wiring.
+  `assets/blocks/how_to_process_raw_blocks.md` is the recipe for adding to it.
+- **Panel terminals** — XT1…XT7 are the right-edge contacts, the top-edge contacts share a strip,
+  and the left-edge contacts are lead clip points only. Read off the mounting drawings of devices 6
+  and 26 (SPEC §5.1).
+- **Детекторный приёмник** — kit-legal reconstruction with no leads, fully working: it proves the
+  whole chain end to end (antenna → tuned circuit → Д9Б → XT4 → amplifier → loudspeaker) and
+  demonstrably goes quiet when you tune off station.
+- **Мультивибратор (устройство 6)** — the factory mounting drawing transcribed cell by cell: all
+  30 cells filled, no leads, `kitLegal: true`. Its netlist, traced from contact alone, is the
+  schematic, and the test checks it part by part. It does not yet make a sound; see the defect
   below.
 
 Presets carry two honest flags, `kitLegal` and `simulates`, and the UI shows both.
 
-The 30 authentic layouts are blocked on SPEC §8 open question 1: the exact pinout of the
-"adjacent" module variants. The mounting drawings settle it — a single careful transcription of
-device 6 «Мультивибратор» cross-read against its schematic will confirm or correct the catalogue,
-and the remaining 29 then follow mechanically. Note the factory routed each layout to the exact
-module budget in the box; a hand-designed circuit generally will not fit, which is why free-play
-mode exists.
+With the pinouts confirmed, each of the other layouts is a mechanical transcription: crop the
+chart cell by cell, match every icon to a block and rotation, then trace the netlist from contact
+alone and compare it with the schematic. Device 26 «Электронная няня» is already transcribed this
+way (it settled XT1, XT5 and XT6) and needs only a preset entry. The factory fills every cell and
+uses some parts only for their wires, so a hand-designed circuit generally will not fit the box;
+that is why free-play mode exists.
 
 **Done when** each preset has a golden test: load, run 2 s, assert the expected outcome
 (oscillation frequency band, audio RMS, or quiescent current).

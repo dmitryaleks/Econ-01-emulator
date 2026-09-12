@@ -64,6 +64,8 @@ export interface InductorEl {
   henries: number;
   /** Winding DC resistance in ohms. */
   esr: number;
+  /** Which winding this section belongs to, e.g. "L1". */
+  winding?: string;
 }
 
 export interface DiodeEl {
@@ -94,6 +96,9 @@ export interface ButtonEl {
   a: ModuleNode;
   b: ModuleNode;
 }
+
+/** Netlist name of the antenna's induced-EMF source, which the radio block drives. */
+export const ANTENNA_EMF = 'WA_EMF';
 
 /**
  * An induced electromotive force in series with a winding. The radio block drives it; a real
@@ -134,8 +139,10 @@ export interface ContactSite {
 }
 
 export interface ModuleDef {
-  /** Stable id used in saved boards and preset circuits. */
+  /** Stable id used in saved boards and preset circuits: the block's name in the registry. */
   id: string;
+  /** The block's two-letter short_id in the registry. */
+  shortId: string;
   /** Russian label as printed in Приложение 2. */
   label: string;
   /** Short value caption for the parts bin, e.g. "2,2 кОм". */
@@ -155,8 +162,6 @@ export interface ModuleDef {
   sites?: ContactSite[];
   /** False for modules that only fit one way, i.e. the antenna bar. */
   rotatable?: boolean;
-  /** Symbol key for the renderer (see ui/symbols.ts). */
-  symbol: string;
 }
 
 /** Contact sites of a module, filling in the default for 1×1 cubes. */

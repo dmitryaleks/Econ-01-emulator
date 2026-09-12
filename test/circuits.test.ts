@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CIRCUITS, DEVICE_6, loadCircuit, type Circuit } from '../src/circuits/index.js';
 import { Board } from '../src/model/board.js';
 import { MODULE_BY_ID } from '../src/model/catalogue.js';
-import { buildNetlist, type NlElement } from '../src/netlist/build.js';
+import { buildNetlist } from '../src/netlist/build.js';
 import { Simulation, dominantFrequency, rms } from '../src/sim/transient.js';
 
 const FS = 96_000;
@@ -54,7 +54,9 @@ describe('every preset', () => {
 
 /**
  * Device 6's netlist checked component by component against the schematic on page 15, so the
- * transcription stays correct regardless of whether the solver can currently run it.
+ * transcription stays correct regardless of whether the solver can currently run it. The
+ * factory layout also carries spare parts that connect to nothing, so each check asks whether
+ * the schematic's part is there, not how many of that value the board holds.
  */
 describe('«Мультивибратор» device 6 matches the factory schematic', () => {
   const board = new Board();
@@ -62,18 +64,20 @@ describe('«Мультивибратор» device 6 matches the factory schemati
   const netlist = buildNetlist(board);
   const mine = netlist.elements.filter((e) => e.name.includes('@'));
 
-  const node = (kind: NlElement['kind'], value: number): string[] => {
-    const el = mine.find(
+  /** Is there a resistor or capacitor of this value between exactly these two nets? */
+  const joins = (kind: 'R' | 'C', value: number, a: string, b: string): boolean =>
+    mine.some(
       (e) =>
         e.kind === kind &&
-        ((e.kind === 'R' && e.ohms === value) || (e.kind === 'C' && e.farads === value)),
+        (e.kind === 'R' ? e.ohms === value : e.kind === 'C' && e.farads === value) &&
+        [e.a, e.b].sort().join('|') === [a, b].sort().join('|'),
     );
-    expect(el, `no ${kind} of ${value}`).toBeDefined();
-    return el!.kind === 'R' || el!.kind === 'C' ? [el!.a, el!.b] : [];
-  };
 
-  const q1 = mine.find((e) => e.kind === 'Q' && e.name.startsWith('q315-a'));
-  const q2 = mine.find((e) => e.kind === 'Q' && e.name.startsWith('q315-b'));
+  // Q1 is the left-hand arm of the schematic (12 кОм base bias), Q2 the right-hand one.
+  const q1 = mine.find((e) => e.kind === 'Q' && e.name.startsWith('block_017'));
+  const q2 = mine.find((e) => e.kind === 'Q' && e.name.startsWith('block_018'));
+  const buttons = (n = netlist) =>
+    n.elements.filter((e) => e.kind === 'R' && e.name.startsWith('block_026@'));
 
   it('has two КТ315Б with a common emitter rail', () => {
     expect(q1?.kind).toBe('Q');
@@ -86,56 +90,50 @@ describe('«Мультивибратор» device 6 matches the factory schemati
 
   it('puts the кнопка between that emitter rail and XT1', () => {
     if (q1?.kind !== 'Q') return;
-    const sb = netlist.elements.find((e) => e.name.startsWith('sb@'));
-    expect(sb?.kind).toBe('R');
-    if (sb?.kind !== 'R') return;
-    expect([sb.a, sb.b].sort()).toEqual([netlist.ground, q1.emitter].sort());
+    const sb = buttons();
+    expect(sb.length).toBeGreaterThan(0);
+    const nets = new Set(sb.flatMap((e) => (e.kind === 'R' ? [e.a, e.b] : [])));
+    expect(nets.has(netlist.ground)).toBe(true);
+    expect(nets.has(q1.emitter)).toBe(true);
     // Released, it is an open circuit.
-    expect(sb.ohms).toBeGreaterThan(1e9);
+    for (const e of sb) expect(e.kind === 'R' && e.ohms > 1e9).toBe(true);
   });
 
   it('closes the кнопка when held', () => {
     const held = new Board();
     loadCircuit(held, DEVICE_6);
     held.controls.buttonDown = true;
-    const sb = buildNetlist(held).elements.find((e) => e.name.startsWith('sb@'));
-    expect(sb?.kind === 'R' && sb.ohms < 1).toBe(true);
+    const sb = buttons(buildNetlist(held));
+    expect(sb.length).toBeGreaterThan(0);
+    for (const e of sb) expect(e.kind === 'R' && e.ohms < 1).toBe(true);
   });
 
   it('loads each collector with 2,2 кОм from the supply', () => {
     if (q1?.kind !== 'Q' || q2?.kind !== 'Q') return;
-    const loads = mine.filter((e) => e.kind === 'R' && e.ohms === 2200);
-    expect(loads).toHaveLength(2);
-    const collectors = new Set([q1.collector, q2.collector]);
-    for (const l of loads) {
-      if (l.kind !== 'R') continue;
-      expect([l.a, l.b]).toContain('VCC');
-      expect(collectors.has(l.a) || collectors.has(l.b)).toBe(true);
-    }
+    expect(joins('R', 2200, 'VCC', q1.collector)).toBe(true);
+    expect(joins('R', 2200, 'VCC', q2.collector)).toBe(true);
   });
 
   it('biases the bases with 12 кОм and 68 кОм from the supply', () => {
     if (q1?.kind !== 'Q' || q2?.kind !== 'Q') return;
-    expect(node('R', 12_000).sort()).toEqual(['VCC', q1.base].sort());
-    expect(node('R', 68_000).sort()).toEqual(['VCC', q2.base].sort());
+    expect(joins('R', 12_000, 'VCC', q1.base)).toBe(true);
+    expect(joins('R', 68_000, 'VCC', q2.base)).toBe(true);
   });
 
-  it('cross-couples with 0,01 мкФ and 3300 пФ', () => {
+  it('cross-couples with 3300 пФ and 0,01 мкФ', () => {
     if (q1?.kind !== 'Q' || q2?.kind !== 'Q') return;
-    // 3300 pF from Q2's collector to Q1's base.
-    expect(node('C', 3300e-12).sort()).toEqual([q2.collector, q1.base].sort());
-    // One of the two 0,01 мкФ caps runs from Q1's collector to Q2's base.
-    const tens = mine.filter((e) => e.kind === 'C' && e.farads === 0.01e-6);
-    expect(tens).toHaveLength(2);
-    const wanted = [q1.collector, q2.base].sort().join('|');
-    expect(tens.some((c) => c.kind === 'C' && [c.a, c.b].sort().join('|') === wanted)).toBe(true);
+    expect(joins('C', 3300e-12, q2.collector, q1.base)).toBe(true);
+    expect(joins('C', 0.01e-6, q1.collector, q2.base)).toBe(true);
   });
 
   it('couples the output to the amplifier input through 0,01 мкФ', () => {
     if (q2?.kind !== 'Q') return;
-    const tens = mine.filter((e) => e.kind === 'C' && e.farads === 0.01e-6);
-    const wanted = ['AMP_IN', q2.collector].sort().join('|');
-    expect(tens.some((c) => c.kind === 'C' && [c.a, c.b].sort().join('|') === wanted)).toBe(true);
+    expect(joins('C', 0.01e-6, q2.collector, 'AMP_IN')).toBe(true);
+  });
+
+  it('needs no lead and stays within the box', () => {
+    expect(DEVICE_6.leads ?? []).toHaveLength(0);
+    expect(board.placements.size).toBe(30);
   });
 });
 

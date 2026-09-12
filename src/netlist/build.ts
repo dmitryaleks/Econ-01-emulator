@@ -1,8 +1,9 @@
 /**
  * Turn a board into a netlist.
  *
- * Contacts of orthogonally adjacent modules touch pad to pad; that, plus the seven left-edge
- * terminals and the two supplied leads, is the whole wiring mechanism (SPEC.md §3.1, §7.1).
+ * Contacts of orthogonally adjacent modules touch pad to pad; that, plus the seven right-edge
+ * terminals, the strip along the top edge and the two supplied leads, is the whole wiring
+ * mechanism (SPEC.md §3.1, §5.1).
  * The built-in low-frequency amplifier of Приложение 3 is always present and is stitched on
  * at the end.
  */
@@ -15,6 +16,8 @@ import {
   rotatePin,
   sitesOf,
   type Element,
+  type EmfEl,
+  type InductorEl,
   type ModuleNode,
   type Pin,
   type Rotation,
@@ -212,9 +215,7 @@ export function buildNetlist(board: Board): Netlist {
       }
     }
 
-    if (def.id === 'ant') {
-      antenna = { tuned: [net('W'), net('E')], coupling: [net('#l2'), net('E')] };
-    }
+    if (def.shape === 'antenna') antenna = antennaTerminals(def.elements, net);
   }
 
   // --- 6. Built-in amplifier, battery, controls (Приложение 3) -------------------------------
@@ -230,6 +231,23 @@ export function buildNetlist(board: Board): Netlist {
     speaker: { p: 'SPK', n: uf.find(FIXED_NETS.GND) },
     contactNet,
     antenna,
+  };
+}
+
+/**
+ * The tuned winding runs from the first L1 section's start to the last one's end; the coupling
+ * winding is L2 together with the EMF source in series with it.
+ */
+function antennaTerminals(
+  els: Element[],
+  net: (node: ModuleNode) => NetId,
+): NonNullable<Netlist['antenna']> {
+  const l1 = els.filter((e): e is InductorEl => e.kind === 'inductor' && e.winding === 'L1');
+  const l2 = els.find((e): e is InductorEl => e.kind === 'inductor' && e.winding === 'L2')!;
+  const emf = els.find((e): e is EmfEl => e.kind === 'emf')!;
+  return {
+    tuned: [net(l1[0]!.a), net(l1.at(-1)!.b)],
+    coupling: [net(l2.a), net(emf.n)],
   };
 }
 
