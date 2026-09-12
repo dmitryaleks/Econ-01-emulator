@@ -6,4 +6,8 @@ research/
 *.local
 
 # Reference photographs used for the reverse engineering. Third-party images, kept local.
-assets/
+assets/*
+
+# The blocks registry (crops + structured data) is our own reverse-engineering work, not
+# third-party material, so it's tracked despite living under assets/.
+!assets/blocks/

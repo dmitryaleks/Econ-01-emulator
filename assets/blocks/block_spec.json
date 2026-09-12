@@ -1,0 +1,58 @@
+{
+  "elements": [
+  {
+    "name": "block_001",
+    "short_id": "AB",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0.5-2.2 кОм +-10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 2.2 kΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 2200,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_001.png",
+    "num_in_kit": 2,
+    "pinout": {
+      "status": "hypothesized",
+      "terminal_count": 2,
+      "span": "opposite",
+      "faces": ["W", "E"],
+      "source": "src/model/catalogue.ts:r2k2-o (prior reverse-engineering pass, not yet re-derived from this registry)"
+    },
+    "notes": "Icon shows the resistor body offset toward E with three lines fanning out N/E/S from its right lead and one line to W from its left lead — could be a genuine 3-way tap, or just decorative crosshatching on the printed symbol. Needs cross-preset confirmation before overriding the opposite/W-E hypothesis carried over from the catalogue."
+  },
+  {
+    "name": "block_002",
+    "short_id": "BC",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0.5-12 кОм +-10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 12 kΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 12000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_002.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "hypothesized",
+      "terminal_count": 2,
+      "span": "adjacent",
+      "faces": ["N", "E"],
+      "source": "src/model/catalogue.ts:r12k-a (prior reverse-engineering pass, not yet re-derived from this registry)"
+    },
+    "notes": "Icon shows a straight line from W to the body's near lead, then the body itself sitting toward the lower-right (SE-ish) rather than cleanly on N or E — consistent with a bent, non-opposite span in general, but the exact pair of faces isn't legible from the icon alone."
+  }
+]
+}
