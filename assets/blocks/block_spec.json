@@ -1,4 +1,5 @@
 {
+  "face_convention": "N/E/S/W are the cube's side contacts with the module turned exactly as drawn in its raw_orig_icon (rotation 0).",
   "elements": [
   {
     "name": "block_001",
@@ -20,12 +21,12 @@
     "num_in_kit": 2,
     "pinout": {
       "status": "hypothesized",
-      "terminal_count": 2,
-      "span": "opposite",
-      "faces": ["W", "E"],
-      "source": "src/model/catalogue.ts:r2k2-o (prior reverse-engineering pass, not yet re-derived from this registry)"
+      "connections": [
+        { "from": "W", "to": "E", "via": "resistor", "symmetric": true }
+      ],
+      "source": "src/model/catalogue.ts:r2k2-o (prior pass; its rotation 0 is Приложение 2's drawing, not necessarily this icon's)"
     },
-    "notes": "Icon shows the resistor body offset toward E with three lines fanning out N/E/S from its right lead and one line to W from its left lead — could be a genuine 3-way tap, or just decorative crosshatching on the printed symbol. Needs cross-preset confirmation before overriding the opposite/W-E hypothesis carried over from the catalogue."
+    "notes": "Icon has the same fan-out as block_003 (lead to W, body, then lines from the far lead to N, E and S), and block_003's pinout is confirmed as a W–E resistor with E wired to N and S. So this is very likely the same T topology, and the catalogue's plain W–E span is incomplete."
   },
   {
     "name": "block_002",
@@ -47,12 +48,41 @@
     "num_in_kit": 1,
     "pinout": {
       "status": "hypothesized",
-      "terminal_count": 2,
-      "span": "adjacent",
-      "faces": ["N", "E"],
-      "source": "src/model/catalogue.ts:r12k-a (prior reverse-engineering pass, not yet re-derived from this registry)"
+      "connections": [
+        { "from": "N", "to": "E", "via": "resistor", "symmetric": true }
+      ],
+      "source": "src/model/catalogue.ts:r12k-a (prior pass; its rotation 0 is Приложение 2's drawing, not necessarily this icon's)"
     },
-    "notes": "Icon shows a straight line from W to the body's near lead, then the body itself sitting toward the lower-right (SE-ish) rather than cleanly on N or E — consistent with a bent, non-opposite span in general, but the exact pair of faces isn't legible from the icon alone."
+    "notes": "Read the way block_003's confirmed icon reads (every line that reaches the rim is a contact), this icon shows a plain wire straight across W–E with the resistor hanging off it down to the bottom rim — i.e. W and E joined, resistor from that node to S. Doesn't match the catalogue's N–E hypothesis in this orientation; needs confirming."
+  },
+  {
+    "name": "block_003",
+    "short_id": "CD",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0,5-68 кОм+-10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 68 kΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 68000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_003.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "confirmed",
+      "connections": [
+        { "from": "W", "to": "E", "via": "resistor", "symmetric": true },
+        { "from": "E", "to": "N", "via": "wire" },
+        { "from": "E", "to": "S", "via": "wire" }
+      ],
+      "source": "user"
+    },
+    "notes": "Electrically W is one node and N/E/S are one node, with the resistor between them, so it can be used straight through (W–E) or as a corner (W–N, W–S). The small ring on a stem under the resistor body is unexplained; it may be what distinguishes this from the kit's other 68 кОм module (SPEC.md lists two: r68k-o and r68k-a, one each). num_in_kit = 1 assumes this icon is only one of those two."
   }
 ]
 }
