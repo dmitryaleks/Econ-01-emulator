@@ -65,8 +65,9 @@ Checks before trusting it:
   into one row across the smallest vertical gap. Don't pair lines to the nearest icon: text drifts
   downward relative to the icons, so a row's text can start level with the next icon. If the
   grouping still looks wrong, adjust `min_len` (specks make extra bands; touching rows merge).
-- Every icon box should be roughly square (about 130 px across at this scan size). One that is
-  much wider means a speck survived; raise `min_px` or lower `max_gap`.
+- Every cube icon box should be roughly square (about 130 px across at this scan size). One that is
+  much wider means a speck survived; raise `min_px` or lower `max_gap`. The antenna bar is the
+  exception: its icon is a wide rectangle.
 - `TOUCHES EDGE` means the scan itself cuts that row off. Look at it: say so in the entry's `notes`
   and tell the user, who may be able to re-export with more margin. Don't pad or repair it.
 - Paste the icon crops side by side, enlarged, and look at them: full circle, margin on every side,
@@ -78,7 +79,9 @@ Read each `text_NNN.png` (2x enlarged) one at a time. Transcribe `rus_orig_desc`
 line:
 - decimal comma (`0,5`), `±` rather than `+-`, `кОм` / `МОм`, `пФ` / `мкФ`, no space before `±`;
 - a stacked tolerance (`+80` above `−20`) is written `+80/−20 %`;
-- a description wrapped over two lines is joined with one space;
+- a description wrapped over several lines is joined with single spaces, and a word hyphenated
+  across a line break is rejoined (`вит-` / `ков` → `витков`);
+- italic Latin labels such as `L1`, `L2` stay Latin; keep `×` and the source's final punctuation;
 - the typeface's `К` has a hooked tail; it's an ordinary Cyrillic `К`, not `Қ`.
 
 Watch for `68` vs `680`, `1 МОм` vs `1 кОм`, `680 пФ` vs `3300 пФ`. Two rows with the same text are
@@ -88,7 +91,11 @@ two different modules if their icons differ; give each its own block.
 
 - Refuse to overwrite an existing `block_NNN.png`, then copy the icon crops in.
 - `short_id` continues the running pair sequence (AB, BC, CD, ... so the next after `XY` is `YZ`).
-- `category` and `schematic_prop.kind` use `ElementKind` from `src/model/types.ts`.
+- `category` and `schematic_prop.kind` use `ElementKind` from `src/model/types.ts`. The antenna is
+  the exception: `category: "antenna"`, `shape: "antenna"`, `kind: "inductor"`.
+- Size and placement: `width_cells` (every module is one cell tall). Only a module that can't be
+  turned or placed freely sets `rotatable: false` and a `slot`: the antenna is `width_cells: 6`,
+  `rotatable: false`, `slot: "antenna"` (see the file's `placement_convention`).
 - `eng_interpret` transliterates part series into Latin and spells out the codes:
   - `МЛТ-0,5-68 кОм` → `Resistor, type MLT, 0.5 W, 68 kΩ ±10%`. `0,5` is the power in watts, not
     part of a range.
@@ -99,6 +106,8 @@ two different modules if their icons differ; give each its own block.
     K50-6-1, 10 V, 20 µF`. `10В` is the rated voltage.
   - `Два диода Д9Б` → `Two diodes, germanium point-contact type D9B`;
     `Транзистор КТ315Б` → `Transistor, silicon NPN type KT315B` (Д → D, Б → B).
+  - `Сердечник 400НН-8×80 мм` → `Core: ferrite grade 400NN, 8 × 80 mm` (diameter × length);
+    `ПЭВ-2` → `PEV-2 enamelled wire`.
 - `schematic_prop` by kind:
   - `resistor`: `series`, `power_watts`, `value` (ohm), `tolerance_pct`.
   - `capacitor`: `series`, `temp_coeff_group`, `value` (farad; `1e-8` for 0,01 мкФ),
@@ -107,6 +116,9 @@ two different modules if their icons differ; give each its own block.
   - `electrolytic`: `series`, `polarized: true`, `voltage_rating_v`, `value` (farad).
   - `diode`: `model`, `material`, `count` when one module holds several.
   - `bjt`: `model`, `polarity`, `material`.
+  - antenna (`inductor`): `core` {`material`, `grade`, `diameter_mm`, `length_mm`} and `windings`,
+    each {`name`, `turns_sections`, `wire`, `wire_diameter_mm`}. A tapped winding lists its sections
+    (`100+230` → `[100, 230]`). No inductance is printed, so there is no `value`.
   - Only record what's printed or already established in SPEC.md. If no tolerance is printed, leave
     the tolerance fields out and say so in `notes`.
 - `num_in_kit`: count identical icon+text rows; otherwise check SPEC.md's module table.

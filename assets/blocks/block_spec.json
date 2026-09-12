@@ -1,5 +1,6 @@
 {
   "face_convention": "N/E/S/W are the cube's side contacts with the module turned exactly as drawn in its raw_orig_icon (rotation 0).",
+  "placement_convention": "Every module is one cell tall; width_cells gives its width. A module can be turned in quarter steps and placed in any field cell unless it sets rotatable: false or a slot (the antenna bar only fits the antenna slot, as drawn).",
   "connection_convention": "Each entry in pinout.connections is either a two-terminal element or wire, {from, to, via}, or a multi-terminal element, {via, terminals: {terminal name: face}} (e.g. a bjt's base/collector/emitter). A polarized two-terminal element (symmetric: false) conducts from → to: a diode's anode is 'from' and its cathode 'to'; an electrolytic's + terminal is 'from'.",
   "elements": [
   {
@@ -467,6 +468,33 @@
       "source": "user"
     },
     "notes": "OCR'd from blocks_014-018_raw_table.png, row 5. Second transistor. Same terminal faces as block_017; the only difference is which leg also reaches E: here the emitter (S–E wire), and N–E is explicitly not connected. Every line in the icon is accounted for, including the chord from the bottom rim to the right rim. Contradicts catalogue.ts:q315-b, which has collector S and emitter N, and no E contact."
+  },
+  {
+    "name": "block_019",
+    "short_id": "ST",
+    "category": "antenna",
+    "shape": "antenna",
+    "width_cells": 6,
+    "rotatable": false,
+    "slot": "antenna",
+    "rus_orig_desc": "Антенна магнитная. Сердечник 400НН-8×80 мм. Катушка L1 содержит 100+230 витков провода ПЭВ-2 0,16 мм, катушка L2 содержит 25 витков провода ПЭВ-2 0,16 мм",
+    "eng_interpret": "Magnetic (ferrite-rod) antenna. Core: ferrite grade 400NN, 8 × 80 mm. Coil L1: 100 + 230 turns of PEV-2 enamelled wire, 0.16 mm; coil L2: 25 turns of PEV-2 wire, 0.16 mm.",
+    "schematic_prop": {
+      "kind": "inductor",
+      "core": { "material": "ferrite", "grade": "400NN", "diameter_mm": 8, "length_mm": 80 },
+      "windings": [
+        { "name": "L1", "turns_sections": [100, 230], "wire": "PEV-2", "wire_diameter_mm": 0.16 },
+        { "name": "L2", "turns_sections": [25], "wire": "PEV-2", "wire_diameter_mm": 0.16 }
+      ]
+    },
+    "raw_orig_icon": "block_019.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_019-019_raw_table.png. One cell tall and six wide; fits only the antenna slot, as drawn. L1 is one winding tapped into 100 + 230 turns. No inductance is printed; catalogue.ts:ant estimates it from the turn counts. In the icon, L2 (short winding, top) sits above the tapped L1, and leads reach the top edge in several places and the right end, but none reaches the left end or the bottom edge; catalogue.ts:ant puts a contact on the left end, which this drawing doesn't show. Its contacts sit at positions along a six-cell bar, which the N/E/S/W face format can't express yet (SPEC.md §8 open question 4). Probably catalogue.ts:ant."
   }
 ]
 }
