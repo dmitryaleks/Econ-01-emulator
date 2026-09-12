@@ -42,7 +42,10 @@ def hspan(x0, x1, y0, y1, max_gap, min_px=3):         # widest ink cluster, so s
     return a, b + 1
 
 ib, tb = bands(0, div - 10), bands(div + 10, W)
-assert len(ib) == len(tb), (ib, tb)                  # every icon must pair with one text line
+assert len(tb) >= len(ib), (ib, tb)                  # every icon needs at least one text line
+while len(tb) > len(ib):                             # multi-line descriptions: join across the smallest gap
+    k = min(range(len(tb) - 1), key=lambda i: tb[i + 1][0] - tb[i][1])
+    tb[k:k + 2] = [(tb[k][0], tb[k + 1][1])]
 for i, ((iy0, iy1), (ty0, ty1)) in enumerate(zip(ib, tb)):
     n = first + i
     ix0, ix1 = hspan(0, div - 10, iy0, iy1, max_gap=10)
@@ -58,8 +61,10 @@ for i, ((iy0, iy1), (ty0, ty1)) in enumerate(zip(ib, tb)):
 Run: `python segment.py assets/blocks/<raw>.png <scratchpad> <first block number>`.
 
 Checks before trusting it:
-- The printed icon and text band counts are equal and match the rows you can see. If not, adjust
-  `min_len` (specks make extra bands; touching rows merge into one).
+- The printed rows match the rows you can see. A description wrapped over two lines is joined back
+  into one row across the smallest vertical gap. Don't pair lines to the nearest icon: text drifts
+  downward relative to the icons, so a row's text can start level with the next icon. If the
+  grouping still looks wrong, adjust `min_len` (specks make extra bands; touching rows merge).
 - Every icon box should be roughly square (about 130 px across at this scan size). One that is
   much wider means a speck survived; raise `min_px` or lower `max_gap`.
 - `TOUCHES EDGE` means the scan itself cuts that row off. Look at it: say so in the entry's `notes`
@@ -73,6 +78,7 @@ Read each `text_NNN.png` (2x enlarged) one at a time. Transcribe `rus_orig_desc`
 line:
 - decimal comma (`0,5`), `±` rather than `+-`, `кОм` / `МОм`, `пФ` / `мкФ`, no space before `±`;
 - a stacked tolerance (`+80` above `−20`) is written `+80/−20 %`;
+- a description wrapped over two lines is joined with one space;
 - the typeface's `К` has a hooked tail; it's an ordinary Cyrillic `К`, not `Қ`.
 
 Watch for `68` vs `680`, `1 МОм` vs `1 кОм`, `680 пФ` vs `3300 пФ`. Two rows with the same text are
@@ -89,13 +95,28 @@ two different modules if their icons differ; give each its own block.
   - `К10-7В-Н90-0,01 мкФ` → `Capacitor, ceramic type K10-7V, temperature group N90, 0.01 µF +80/−20%`.
     `Н90` / `Н70` is how far capacitance may drift over temperature, not a value. `КТ-1` is a
     ceramic tubular type.
-- `schematic_prop`: numeric `value` in base units (`ohm`, `farad`; `1e-8` for 0,01 мкФ), plus
-  `series`, and `power_watts` for resistors or `temp_coeff_group` for capacitors. A symmetric
-  tolerance is `tolerance_pct`; an asymmetric one is `tolerance_pct_minus` + `tolerance_pct_plus`
-  (as `catalogue.ts` does with `tol` vs `tolLow`/`tolHigh`).
+  - `Конденсатор электролитический К50-6-1-10В-20 мкФ` → `Capacitor, aluminium electrolytic type
+    K50-6-1, 10 V, 20 µF`. `10В` is the rated voltage.
+  - `Два диода Д9Б` → `Two diodes, germanium point-contact type D9B`;
+    `Транзистор КТ315Б` → `Transistor, silicon NPN type KT315B` (Д → D, Б → B).
+- `schematic_prop` by kind:
+  - `resistor`: `series`, `power_watts`, `value` (ohm), `tolerance_pct`.
+  - `capacitor`: `series`, `temp_coeff_group`, `value` (farad; `1e-8` for 0,01 мкФ),
+    `tolerance_pct_minus` + `tolerance_pct_plus` (asymmetric, as `catalogue.ts` does with
+    `tolLow`/`tolHigh`).
+  - `electrolytic`: `series`, `polarized: true`, `voltage_rating_v`, `value` (farad).
+  - `diode`: `model`, `material`, `count` when one module holds several.
+  - `bjt`: `model`, `polarity`, `material`.
+  - Only record what's printed or already established in SPEC.md. If no tolerance is printed, leave
+    the tolerance fields out and say so in `notes`.
 - `num_in_kit`: count identical icon+text rows; otherwise check SPEC.md's module table.
 - `pinout`: `status: "unknown"`, empty `connections`, unless the user has given the pinout. Don't
-  read pinouts off icons as fact. Mention the likely `catalogue.ts` id in `notes`: the table's row
+  read pinouts off icons as fact. A user-given pinout is `status: "confirmed"`, `source: "user"`,
+  one connection per element or plain wire, written as the user describes it. Two-terminal parts and
+  wires are `{from, to, via}`; for a diode or electrolytic `from` is the anode / +. A part with more
+  legs is `{via, terminals: {base: "W", ...}}`. Both forms are defined in the file's
+  `connection_convention`. Record the pinout as given, then enlarge the icon and note any line it
+  leaves out. Mention the likely `catalogue.ts` id in `notes`: the table's row
   order follows the catalogue's. Flag it when the icon's drawing style disagrees with that entry's
   opposite/adjacent span.
 - Validate: the JSON parses, every `raw_orig_icon` exists, and `name` and `short_id` are unique.

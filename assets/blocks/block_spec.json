@@ -1,5 +1,6 @@
 {
   "face_convention": "N/E/S/W are the cube's side contacts with the module turned exactly as drawn in its raw_orig_icon (rotation 0).",
+  "connection_convention": "Each entry in pinout.connections is either a two-terminal element or wire, {from, to, via}, or a multi-terminal element, {via, terminals: {terminal name: face}} (e.g. a bjt's base/collector/emitter). A polarized two-terminal element (symmetric: false) conducts from → to: a diode's anode is 'from' and its cathode 'to'; an electrolytic's + terminal is 'from'.",
   "elements": [
   {
     "name": "block_001",
@@ -338,6 +339,134 @@
       "source": ""
     },
     "notes": "OCR'd from blocks_009-013_raw_table.png, row 5. Third 0,01 мкФ module; capacitor drawn straight W–E with one diagonal line down to the rim. The bottom of the circle is cut off by the edge of the scan. Probably catalogue.ts:c10n-o2."
+  },
+  {
+    "name": "block_014",
+    "short_id": "NO",
+    "category": "electrolytic",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор электролитический К50-6-1-10В-20 мкФ",
+    "eng_interpret": "Capacitor, aluminium electrolytic type K50-6-1, 10 V, 20 µF",
+    "schematic_prop": {
+      "kind": "electrolytic",
+      "series": "K50-6-1",
+      "polarized": true,
+      "voltage_rating_v": 10,
+      "value": 2e-5,
+      "unit": "farad"
+    },
+    "raw_orig_icon": "block_014.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_014-018_raw_table.png, row 1. No tolerance is printed. First of two 20 мкФ modules; capacitor drawn straight W–E with one diagonal line down to the rim, and a + mark on the W side of the plates. Probably catalogue.ts:c20u-o."
+  },
+  {
+    "name": "block_015",
+    "short_id": "OP",
+    "category": "electrolytic",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор электролитический К50-6-1-10В-20 мкФ",
+    "eng_interpret": "Capacitor, aluminium electrolytic type K50-6-1, 10 V, 20 µF",
+    "schematic_prop": {
+      "kind": "electrolytic",
+      "series": "K50-6-1",
+      "polarized": true,
+      "voltage_rating_v": 10,
+      "value": 2e-5,
+      "unit": "farad"
+    },
+    "raw_orig_icon": "block_015.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_014-018_raw_table.png, row 2. No tolerance is printed. Second 20 мкФ module; capacitor drawn straight W–E with one diagonal line up to the rim, and a + mark on the W side of the plates. Row order says catalogue.ts:c20u-a, but that entry is 'adjacent' while this is drawn like the straight-through ones (same mismatch as block_012)."
+  },
+  {
+    "name": "block_016",
+    "short_id": "PQ",
+    "category": "diode",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Два диода Д9Б",
+    "eng_interpret": "Two diodes, germanium point-contact type D9B",
+    "schematic_prop": {
+      "kind": "diode",
+      "model": "D9B",
+      "material": "germanium",
+      "count": 2
+    },
+    "raw_orig_icon": "block_016.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "confirmed",
+      "connections": [
+        { "from": "W", "to": "S", "via": "diode", "symmetric": false },
+        { "from": "S", "to": "E", "via": "diode", "symmetric": false }
+      ],
+      "source": "user"
+    },
+    "notes": "OCR'd from blocks_014-018_raw_table.png, row 3. Two diodes in series W→S→E with the midpoint on S, so the module gives either diode alone or both in series; matches catalogue.ts:dd9b. The icon also has a line from the W side up to the top rim that the confirmed pinout doesn't include; it may be a plain W–N wire like block_003's, still to check."
+  },
+  {
+    "name": "block_017",
+    "short_id": "QR",
+    "category": "bjt",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Транзистор КТ315Б",
+    "eng_interpret": "Transistor, silicon NPN type KT315B",
+    "schematic_prop": {
+      "kind": "bjt",
+      "model": "KT315B",
+      "polarity": "NPN",
+      "material": "silicon"
+    },
+    "raw_orig_icon": "block_017.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "confirmed",
+      "connections": [
+        { "via": "bjt", "terminals": { "base": "W", "collector": "N", "emitter": "S" } },
+        { "from": "N", "to": "E", "via": "wire" }
+      ],
+      "source": "user"
+    },
+    "notes": "OCR'd from blocks_014-018_raw_table.png, row 4. First of the kit's two transistors. The plain N–E wire makes the collector reachable on both N and E. Every line in the icon is accounted for: base to W, collector up to N, emitter down to S, and the chord from the top rim to the right rim. Terminals match catalogue.ts:q315-a, but the catalogue gives that module no E contact, so it's missing the N–E wire."
+  },
+  {
+    "name": "block_018",
+    "short_id": "RS",
+    "category": "bjt",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Транзистор КТ315Б",
+    "eng_interpret": "Transistor, silicon NPN type KT315B",
+    "schematic_prop": {
+      "kind": "bjt",
+      "model": "KT315B",
+      "polarity": "NPN",
+      "material": "silicon"
+    },
+    "raw_orig_icon": "block_018.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "confirmed",
+      "connections": [
+        { "via": "bjt", "terminals": { "base": "W", "collector": "N", "emitter": "S" } },
+        { "from": "S", "to": "E", "via": "wire" }
+      ],
+      "source": "user"
+    },
+    "notes": "OCR'd from blocks_014-018_raw_table.png, row 5. Second transistor. Same terminal faces as block_017; the only difference is which leg also reaches E: here the emitter (S–E wire), and N–E is explicitly not connected. Every line in the icon is accounted for, including the chord from the bottom rim to the right rim. Contradicts catalogue.ts:q315-b, which has collector S and emitter N, and no E contact."
   }
 ]
 }
