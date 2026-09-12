@@ -585,6 +585,42 @@
       "source": ""
     },
     "notes": "OCR'd from blocks_020-024_raw_table.png, row 5. Icon: lines from a centre dot to W, E and S. Probably catalogue.ts:j-troynik (W, E and S joined). num_in_kit from SPEC.md."
+  },
+  {
+    "name": "block_025",
+    "short_id": "YZ",
+    "category": "link",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Перемычка «Мостик»",
+    "eng_interpret": "Jumper link \"Bridge\" (Mostik)",
+    "schematic_prop": { "kind": "link" },
+    "raw_orig_icon": "block_025.png",
+    "num_in_kit": 4,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_025-026_raw_table.png, row 1. Icon: a straight W–E line, and an N–S line that humps over it at the centre, the usual symbol for two wires crossing without touching. Probably catalogue.ts:j-mostik (W–E and N–S, kept apart). num_in_kit from SPEC.md."
+  },
+  {
+    "name": "block_026",
+    "short_id": "ZA",
+    "category": "button",
+    "shape": "button",
+    "width_cells": 1,
+    "rus_orig_desc": "Кнопка",
+    "eng_interpret": "Push button (normally open)",
+    "schematic_prop": { "kind": "button", "normally_open": true },
+    "raw_orig_icon": "block_026.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_025-026_raw_table.png, row 2. Taller than a cube, with a push cap; normally open per SPEC.md (not printed in the table). Icon: an inner ring (the cap) joined to the rim by short stubs at W, E and S. Which faces the button switches between isn't drawn; catalogue.ts:sb has one normally-open contact between W and E only, so the S stub is unexplained. The small dash below-left of the circle is a scan speck. short_id ZA wraps the letter chain past YZ. Probably catalogue.ts:sb."
   }
 ]
 }

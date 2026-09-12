@@ -90,7 +90,9 @@ two different modules if their icons differ; give each its own block.
 ## 3. Write the entries
 
 - Refuse to overwrite an existing `block_NNN.png`, then copy the icon crops in.
-- `short_id` continues the running pair sequence (AB, BC, CD, ... so the next after `XY` is `YZ`).
+- `short_id` continues the running chain, where each id starts with the previous id's last letter
+  (AB, BC, CD, ... XY, YZ), with Z wrapping around to A (`ZA`). The chain ends there, because the
+  next id would be `AB` again; ask the user before adding a 27th.
 - `category` and `schematic_prop.kind` use `ElementKind` from `src/model/types.ts`. The antenna is
   the exception: `category: "antenna"`, `shape: "antenna"`, `kind: "inductor"`.
 - Size and placement: `width_cells` (every module is one cell tall). Only a module that can't be
@@ -119,6 +121,8 @@ two different modules if their icons differ; give each its own block.
   - `diode`: `model`, `material`, `count` when one module holds several.
   - `bjt`: `model`, `polarity`, `material`.
   - `link`: just `{ "kind": "link" }`; its whole behaviour is in `pinout`.
+  - `button`: `{ "kind": "button", "normally_open": true }` (from SPEC.md), with `shape: "button"`
+    since it's taller than a cube.
   - antenna (`inductor`): `core` {`material`, `grade`, `diameter_mm`, `length_mm`} and `windings`,
     each {`name`, `turns_sections`, `wire`, `wire_diameter_mm`}. A tapped winding lists its sections
     (`100+230` → `[100, 230]`). No inductance is printed, so there is no `value`.
