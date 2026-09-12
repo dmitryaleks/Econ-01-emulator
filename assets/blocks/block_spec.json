@@ -82,7 +82,262 @@
       ],
       "source": "user"
     },
-    "notes": "Electrically W is one node and N/E/S are one node, with the resistor between them, so it can be used straight through (W–E) or as a corner (W–N, W–S). The small ring on a stem under the resistor body is unexplained; it may be what distinguishes this from the kit's other 68 кОм module (SPEC.md lists two: r68k-o and r68k-a, one each). num_in_kit = 1 assumes this icon is only one of those two."
+    "notes": "Electrically W is one node and N/E/S are one node, with the resistor between them, so it can be used straight through (W–E) or as a corner (W–N, W–S). The small ring on a stem under the resistor body is unexplained; blocks 004 and 006 have one too, so it isn't what tells the two 68 кОм modules apart. The kit's other 68 кОм module is block_004, drawn differently, so num_in_kit = 1."
+  },
+  {
+    "name": "block_004",
+    "short_id": "DE",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0,5-68 кОм±10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 68 kΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 68000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_004.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 1. Second 68 кОм module (block_003 is the first); resistor drawn on a diagonal, with a small ring. Probably catalogue.ts:r68k-a."
+  },
+  {
+    "name": "block_005",
+    "short_id": "EF",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0,5-680 кОм±10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 680 kΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 680000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_005.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 2. First of two 680 кОм modules; resistor drawn straight W–E like block_003. Probably catalogue.ts:r680k-o."
+  },
+  {
+    "name": "block_006",
+    "short_id": "FG",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0,5-680 кОм±10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 680 kΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 680000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_006.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 3. Second 680 кОм module; plain W–E line with the resistor on a diagonal below it, like block_002, plus a small ring. Probably catalogue.ts:r680k-a."
+  },
+  {
+    "name": "block_007",
+    "short_id": "GH",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0,5-1 МОм±10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 1 MΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 1000000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_007.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 4. First of two 1 МОм modules; drawn like block_004 without the ring. Probably catalogue.ts:r1m-a."
+  },
+  {
+    "name": "block_008",
+    "short_id": "HI",
+    "category": "resistor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Резистор МЛТ-0,5-1 МОм±10%",
+    "eng_interpret": "Resistor, type MLT, 0.5 W, 1 MΩ ±10%",
+    "schematic_prop": {
+      "kind": "resistor",
+      "series": "MLT",
+      "power_watts": 0.5,
+      "value": 1000000,
+      "unit": "ohm",
+      "tolerance_pct": 10
+    },
+    "raw_orig_icon": "block_008.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 5. Second 1 МОм module; resistor drawn straight W–E with one diagonal line. Probably catalogue.ts:r1m-o."
+  },
+  {
+    "name": "block_009",
+    "short_id": "IJ",
+    "category": "capacitor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор К10-7В-Н90-0,01 мкФ +80/−20 %",
+    "eng_interpret": "Capacitor, ceramic type K10-7V, temperature group N90, 0.01 µF +80/−20%",
+    "schematic_prop": {
+      "kind": "capacitor",
+      "series": "K10-7V",
+      "temp_coeff_group": "N90",
+      "value": 1e-8,
+      "unit": "farad",
+      "tolerance_pct_minus": 20,
+      "tolerance_pct_plus": 80
+    },
+    "raw_orig_icon": "block_009.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_009-013_raw_table.png, row 1. First of three 0,01 мкФ modules; capacitor drawn straight W–E with two diagonal lines, like block_003. Probably catalogue.ts:c10n-o."
+  },
+  {
+    "name": "block_010",
+    "short_id": "JK",
+    "category": "capacitor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор КТ-1-Н70-680 пФ +80/−20 %",
+    "eng_interpret": "Capacitor, ceramic tubular type KT-1, temperature group N70, 680 pF +80/−20%",
+    "schematic_prop": {
+      "kind": "capacitor",
+      "series": "KT-1",
+      "temp_coeff_group": "N70",
+      "value": 6.8e-10,
+      "unit": "farad",
+      "tolerance_pct_minus": 20,
+      "tolerance_pct_plus": 80
+    },
+    "raw_orig_icon": "block_010.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_009-013_raw_table.png, row 2. Drawn unlike the others: a W–E line that dips around the centre and a line straight from top to bottom. An ink blot, probably scan damage, covers the upper right of the icon and could hide a line there. Probably catalogue.ts:c680p-a."
+  },
+  {
+    "name": "block_011",
+    "short_id": "KL",
+    "category": "capacitor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор КТ-1-Н70-3300 пФ +80/−20 %",
+    "eng_interpret": "Capacitor, ceramic tubular type KT-1, temperature group N70, 3300 pF +80/−20%",
+    "schematic_prop": {
+      "kind": "capacitor",
+      "series": "KT-1",
+      "temp_coeff_group": "N70",
+      "value": 3.3e-9,
+      "unit": "farad",
+      "tolerance_pct_minus": 20,
+      "tolerance_pct_plus": 80
+    },
+    "raw_orig_icon": "block_011.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_009-013_raw_table.png, row 3. Capacitor drawn straight W–E with one diagonal line up to the rim, like block_008. Probably catalogue.ts:c3n3-o."
+  },
+  {
+    "name": "block_012",
+    "short_id": "LM",
+    "category": "capacitor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор К10-7В-Н90-0,01 мкФ +80/−20 %",
+    "eng_interpret": "Capacitor, ceramic type K10-7V, temperature group N90, 0.01 µF +80/−20%",
+    "schematic_prop": {
+      "kind": "capacitor",
+      "series": "K10-7V",
+      "temp_coeff_group": "N90",
+      "value": 1e-8,
+      "unit": "farad",
+      "tolerance_pct_minus": 20,
+      "tolerance_pct_plus": 80
+    },
+    "raw_orig_icon": "block_012.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_009-013_raw_table.png, row 4. Second 0,01 мкФ module; capacitor drawn straight W–E with one diagonal line up to the rim, plus a small ring. Row order says catalogue.ts:c10n-a, but that entry is 'adjacent' while this is drawn like the straight-through ones, so either the order mapping or the catalogue is wrong here."
+  },
+  {
+    "name": "block_013",
+    "short_id": "MN",
+    "category": "capacitor",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Конденсатор К10-7В-Н90-0,01 мкФ +80/−20 %",
+    "eng_interpret": "Capacitor, ceramic type K10-7V, temperature group N90, 0.01 µF +80/−20%",
+    "schematic_prop": {
+      "kind": "capacitor",
+      "series": "K10-7V",
+      "temp_coeff_group": "N90",
+      "value": 1e-8,
+      "unit": "farad",
+      "tolerance_pct_minus": 20,
+      "tolerance_pct_plus": 80
+    },
+    "raw_orig_icon": "block_013.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_009-013_raw_table.png, row 5. Third 0,01 мкФ module; capacitor drawn straight W–E with one diagonal line down to the rim. The bottom of the circle is cut off by the edge of the scan. Probably catalogue.ts:c10n-o2."
   }
 ]
 }
