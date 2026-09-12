@@ -16,7 +16,7 @@ circuit at audio rate and heard through the loudspeaker.
 | Simulation | **Real transient MNA solver** — Ebers-Moll BJTs, Shockley diodes, companion-model R/C/L. Not pattern matching. |
 | Stack | **Vite + TypeScript, no framework.** Vitest for the engine. Canvas 2D for the panel. |
 | Audio | The solver runs *inside* an `AudioWorkletProcessor` and is the sample source. |
-| Skins | **Two, toggleable**: 1982 replica and clean schematic mode. |
+| Skins | **Three, toggleable**: the grey and black production variants and a clean schematic mode. A skin is a full palette plus structural choices (carry-rail dimples, boxed badge, grille packing, knob knurling, module cap), so the two real variants differ in more than colour. |
 | Radio | Behavioural (see SPEC §7.3) — the one documented departure from first principles. |
 
 ## Layout
@@ -31,7 +31,7 @@ src/
   sim/        matrix.ts  mna.ts  models.ts  transient.ts  radio.ts
   audio/      engine.ts  solver-worklet.ts
   ui/         app.ts  panel-canvas.ts  probe.ts  symbols.ts
-              skins/skin.ts  skins/replica.ts  skins/schematic.ts
+              skins/skin.ts  skins/grey.ts  skins/black.ts  skins/schematic.ts
   circuits/   index.ts
 test/         netlist.test.ts  mna.test.ts  integration.test.ts
               circuits.test.ts  perf.test.ts
@@ -114,10 +114,10 @@ Fallback: if a board is too stiff for real time, drop to 12 kHz with 4× interpo
 - `ui/panel-canvas.ts` — one Canvas 2D, DPR-aware, hit-testing against `model/panel.ts`. Drag and
   drop from the parts bin, `R` or right-click to rotate, drag the wheels for volume and tuning.
 - `ui/symbols.ts` — one path-drawing function per module symbol, shared by both skins.
-- `ui/skins/replica.ts` — vector-drawn 1982 look: textured black case, bevelled yellow cubes with
-  embossed symbols and the diagonal prising slot, 37-hole speaker grille, ribbed wheels, Cyrillic
-  silkscreen, moulded «ЭКОН-01» badge. No photo assets.
-- `ui/skins/schematic.ts` — flat, high-contrast, large symbols, net colouring.
+- `ui/skins/{grey,black,schematic}.ts` — vector-drawn, no photo assets. The grey skin is matched
+  to `assets/the-original-econ-01-body.jpg`: matte grey case, dimpled carry rail, boxed badge,
+  hex speaker grille with six moulded bridges, bronze contacts, pale lemon domed module caps and
+  thin engraved markings. Panel geometry is measured off that photograph in millimetres.
 - `ui/probe.ts` — click any contact to scope `V(t)`; two probes give a differential trace.
 - Live feedback: speaker cone animates with output amplitude; the button and sensor modules are
   interactive; over-current and reverse-bias warnings surface here.
@@ -158,7 +158,8 @@ the sources; interactive sensor modules; over-current and reverse-bias warnings.
 - `npm run test` — netlist, solver and golden-circuit suites green.
 - `npm run dev`, then drive the page with the Chrome MCP tools: place a multivibrator, confirm the
   scope trace oscillates and audio output is non-zero; toggle both skins; check 400 px width.
-- Compare a replica-skin screenshot against `research/photos/047_001.jpg` side by side.
+- Compare a grey-skin screenshot against `assets/the-original-econ-01-body.jpg` side by side,
+  and a black-skin screenshot against `research/photos/047_001.jpg`.
 - Cross-check three assembled circuits against their manual pages.
 
 ## Out of scope

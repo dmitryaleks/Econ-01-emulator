@@ -14,6 +14,7 @@
 | retropc.org photographs `047.jpg`, `047_001…003.jpg` | Box art, front/rear panel, modules |
 | [sovtech.su](https://www.sovtech.su/2024/11/30/) photographs | Module internals, base contacts, inner PCB |
 | [rw6ase.narod.ru](https://www.rw6ase.narod.ru/index1/konstr/rk_mnog_funkc/ekon01.html), rdwiki.com, radionic.ru | Production history |
+| **`assets/the-original-econ-01-body.jpg`** — an orthogonal photograph of a grey-cased unit | Case proportions, panel geometry in millimetres, the full colour palette, and the mouldings: dimpled carry rail, boxed badge, hex speaker grille, bronze contacts |
 
 The extracted manual lives in `research/manual/` (gitignored): `png/pNNN.png` are the raw DjVu
 pages, `book/NN.png` are the same pages renamed to **printed page numbers** via `bookmap.json`
@@ -37,9 +38,13 @@ near Leningrad, from 1982 into the early 1990s. Арт. ЛО-085-01-2141, ТУ 1
 
 ### 2.1 Technical data **[C]**
 
+The manual gives the size as "206 × 190 × 38 mm" without saying which is which. The orthogonal
+photograph settles it: the case measures 1.09 times taller than wide, so it is **height × width
+× depth** and the case is portrait. **[C]**
+
 | | |
 |---|---|
-| Overall size (in retail box) | 206 × 190 × 38 mm |
+| Overall size | **190 wide × 206 tall × 38 deep mm** |
 | Mass | ≤ 0.8 kg |
 | Supply voltage | 8.7 V (6 × А316 «Квант» or «Прима», 1.45 V each) |
 | Max current | ≤ 120 mA |
@@ -66,9 +71,37 @@ is how external signals get in and out.
 
 ## 3. Physical layout
 
-Black moulded ABS case with an integral carry handle along the top edge and a sloped front.
-Silkscreen: «ЭКОН-01» badge top right, «30 ЭЛЕКТРОННЫХ УСТРОЙСТВ» in the top-left corner of the
-field surround. Modules are chrome yellow (**[G]** `#F5C518` top face, `#E0A800` sides).
+### 3.0 Two production variants **[C]**
+
+Photographs show two cases, identical in mouldings and layout but not in colour or finish:
+
+| | **Grey** (`assets/the-original-econ-01-body.jpg`) | **Black** (retropc.org) |
+|---|---|---|
+| Case | warm grey ABS, matte, `#A7ACAC` with a light `#C2C7C6` top and `#868B8C` shadow | black, `#1F1F22` |
+| Modules | pale lemon, `#EFE774` cap → `#C9BC53` sides | chrome yellow, `#F6C81F` → `#B98405` |
+| Markings | thin engraved lines, near-black `#241D0B` | embossed, raised plastic |
+| Contacts | tarnished phosphor bronze, `#7A6A44` | bright nickel |
+| Badge | «ЭКОН·01» inside a rounded outline box | plain silkscreen |
+
+Both are reproduced as skins; the grey one is the default because it is the variant we have a
+square-on reference photograph of. Colours above are sampled from the photographs. **[C]**
+
+### 3.1 Mouldings **[C]**
+
+- **Carry rail** across the top, 47 mm deep: a row of **11 shallow finger dimples** (r ≈ 7.9 mm,
+  centres 17.2 mm apart) above a **through-slot** 172 × 23 mm with rounded corners. Below the
+  rail a bevel band catches the light before the flat front face begins.
+- **Silkscreen** top left: a large «30» with «ЭЛЕКТРОННЫХ» / «УСТРОЙСТВ» set tight beside it on
+  two lines, in a squarish Soviet techno grotesque.
+- **Badge** top right: «ЭКОН·01» with a raised middle dot.
+- **Speaker**: a recessed disc, r ≈ 29.8 mm, of **hex-packed holes** with **six moulded bridges**
+  notching the rim at 60° intervals.
+- **Volume**: a small recessed window 29 × 11.5 mm with «ВКЛ.» and a left-pointing arrow above
+  it; a finely ribbed cream thumbwheel shows through, carrying a red index mark.
+- **Tuning**: a cream **knurled knob**, r ≈ 19.7 mm, with a raised inner platform, a dished
+  centre, and an engraved dial arc with four index dots.
+- **Modules** sit as square bodies with a **large domed circular cap**, the square shoulders just
+  showing at the corners. The кнопка module carries a **black push cap**.
 
 Front panel, from Рис. 1 of the manual and the retropc photographs:
 
@@ -90,6 +123,10 @@ Front panel, from Рис. 1 of the manual and the retropc photographs:
 
 - **[C]** 5 + 1 + 1 rows of cell positions: **36 cube cells**, exactly matching the 36 modules,
   plus one full-width antenna slot.
+- **[C]** Measured from the photograph: field origin 8.2 mm from the left edge and 86.5 mm from
+  the top, **cell pitch 16.2 mm**, the antenna slot about 1.22 cells tall with small gaps above
+  and below it. The field runs almost to the bottom edge and hard against the left side, which
+  is why the seven XT terminals have no room for printed labels on the real panel.
 - **[C]** Contacts are fitted *around the perimeter* of the field («поле с установленными по
   периметру контактами»): small clamp contacts along the top, right and bottom edges, and seven
   larger, outset contacts down the **left** edge.
@@ -100,7 +137,7 @@ Front panel, from Рис. 1 of the manual and the retropc photographs:
   variable capacitor C10 (the large ribbed wheel); `4` = battery compartment lid on the rear.
 - **[C]** The built-in low-frequency amplifier and the loudspeaker are inside the case.
 
-### 3.1 Modules **[C]**
+### 3.2 Modules **[C]**
 
 Hollow yellow cubes, ~19 mm **[G]**, with a round top face carrying an embossed schematic symbol
 and a moulded diagonal **prising slot**. **One metal contact pad is centred on each of the four

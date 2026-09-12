@@ -1,4 +1,4 @@
-/** Clean high-contrast mode: same geometry, flat ink, large symbols. */
+/** Clean high-contrast mode: same geometry, flat ink, no moulding. */
 
 import type { Skin } from './skin.js';
 
@@ -6,32 +6,61 @@ export const SCHEMATIC: Skin = {
   id: 'schematic',
   label: 'Схема',
 
-  caseFill: '#f6f5f1',
-  caseEdge: '#d8d6cf',
-  caseHighlight: '#ffffff',
-  fieldWell: '#ffffff',
-  fieldEdge: '#b9b6ad',
-  silkscreen: '#5a574f',
-  contact: '#8d8a80',
-  contactShadow: '#d8d6cf',
+  case: {
+    base: '#F6F5F1',
+    light: '#FFFFFF',
+    dark: '#E7E4DC',
+    edge: '#C4C1B8',
+    bevel: '#FFFFFF',
+  },
+  field: {
+    well: '#FFFFFF',
+    wellEdge: '#B9B6AD',
+    frame: '#F0EEE8',
+  },
+  contact: {
+    face: '#8D8A80',
+    edge: '#B9B6AD',
+  },
+  module: {
+    top: '#FFFFFF',
+    topHi: '#FFFFFF',
+    side: '#E7E4DC',
+    shoulder: '#F4F2EC',
+    shadow: '#D4D1C8',
+  },
+  symbol: {
+    ink: '#1D1C19',
+    weight: 0.085,
+    emboss: false,
+    slot: '#B9B6AD',
+  },
+  speaker: {
+    plate: '#ECEAE4',
+    hole: '#C4C1B8',
+    rim: '#D8D5CC',
+  },
+  knob: {
+    face: '#FFFFFF',
+    rib: '#C4C1B8',
+    shadow: '#D8D5CC',
+    dish: '#F6F5F1',
+    mark: '#5A574F',
+  },
 
-  cubeTop: '#ffffff',
-  cubeTopHi: '#ffffff',
-  cubeSide: '#e7e4dc',
-  cubeEmboss: '#1d1c19',
-  cubeEmbossHi: '#1d1c19',
+  silkscreen: '#5A574F',
+  textOnCase: '#3A3833',
+  accent: '#B3341B',
+  netLive: '#1D6FD0',
+  probe: '#0E8F6F',
+  scope: { background: '#FFFFFF', grid: '#E7E4DC' },
 
-  speakerGrille: '#eceae4',
-  speakerHole: '#c4c1b8',
-  knobFace: '#ffffff',
-  knobRib: '#c4c1b8',
-  knobCentre: '#5a574f',
-
-  accent: '#b3341b',
-  netLive: '#1d6fd0',
-  probe: '#0e8f6f',
-  textOnCase: '#3a3833',
-
-  texture: false,
-  emboss: false,
+  style: {
+    handle: 'plain',
+    badge: 'boxed',
+    grille: 'rings',
+    knob: 'plain',
+    cap: 'flat',
+    texture: false,
+  },
 };

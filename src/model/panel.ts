@@ -110,36 +110,77 @@ export function panelNetAt(cell: Cell, edge: Pin): FixedNet | null {
 }
 
 // ---------------------------------------------------------------------------
-// Drawing geometry, in millimetres on the real panel (SPEC.md §3)
+// Drawing geometry, in millimetres on the real panel
 // ---------------------------------------------------------------------------
 
-/** Case outline. */
-export const CASE_MM = { w: 206, h: 190 };
+/**
+ * Case outline. The manual gives 206 × 190 × 38 mm; the orthogonal photograph in
+ * `assets/the-original-econ-01-body.jpg` measures 1.09 taller than wide, so that is
+ * height × width × depth — the case is portrait, not landscape.
+ */
+export const CASE_MM = { w: 190, h: 206, radius: 3.4 };
 
-/** Cell pitch and the field origin, measured off Рис. 1 and the retropc photographs. */
+/** Carry rail across the top: finger dimples above a through-slot. */
+export const HANDLE_MM = {
+  top: 0,
+  height: 47,
+  dimpleRow: { y: 9.3, r: 7.9, count: 11, from: 9, to: 181 },
+  slot: { x: 9, y: 19, w: 172, h: 23, radius: 3 },
+  /** Bevel band where the rail steps down to the front face. */
+  shoulder: { y: 47, h: 17 },
+};
+
+/**
+ * Assembly field. Cell pitch and origin measured off the photograph:
+ * six columns spanning 100.7 mm, five main rows, the antenna slot, then the bottom row.
+ */
 export const FIELD_MM = {
-  x: 14,
-  y: 46,
-  pitch: 19,
-  /** Gap between the main grid and the antenna slot, and between that and the bottom row. */
-  gap: 2.5,
+  x: 8.2,
+  y: 86.5,
+  pitch: 16.2,
+  /** The antenna slot is a little taller than a cube row. */
+  antennaScale: 1.22,
+  /** Gap above the antenna slot and below it. */
+  gapAbove: 3.4,
+  gapBelow: 1.2,
+  /** Moulded frame around the field. */
+  pad: 5.4,
 };
 
 export function cellRectMm(cell: Cell): { x: number; y: number; w: number; h: number } {
-  const { x, y, pitch, gap } = FIELD_MM;
-  const gapsAbove = (cell.row >= ANTENNA_ROW ? 1 : 0) + (cell.row >= BOTTOM_ROW ? 1 : 0);
+  const { x, y, pitch, antennaScale, gapAbove, gapBelow } = FIELD_MM;
+  let top = y;
+  for (let r = 0; r < cell.row; r++) {
+    top += r === ANTENNA_ROW ? pitch * antennaScale : pitch;
+    if (r === ANTENNA_ROW - 1) top += gapAbove;
+    if (r === ANTENNA_ROW) top += gapBelow;
+  }
   return {
     x: x + cell.col * pitch,
-    y: y + cell.row * pitch + gapsAbove * gap,
+    y: top,
     w: pitch,
-    h: pitch,
+    h: cell.row === ANTENNA_ROW ? pitch * antennaScale : pitch,
   };
 }
 
-/** Right-hand panel furniture. */
+/** Bounding box of the whole field, frame included. */
+export function fieldRectMm(): { x: number; y: number; w: number; h: number } {
+  const first = cellRectMm({ col: 0, row: 0 });
+  const last = cellRectMm({ col: COLS - 1, row: ROWS - 1 });
+  const pad = FIELD_MM.pad;
+  return {
+    x: first.x - pad,
+    y: first.y - pad,
+    w: last.x + last.w - first.x + pad * 2,
+    h: last.y + last.h - first.y + pad * 2,
+  };
+}
+
+/** Right-hand panel furniture, measured off the same photograph. */
 export const CONTROLS_MM = {
-  speaker: { cx: 156, cy: 74, r: 27 },
-  volume: { x: 133, y: 112, w: 44, h: 13 },
-  tuning: { cx: 160, cy: 150, r: 22 },
-  badge: { x: 128, y: 34 },
+  speaker: { cx: 152, cy: 119, r: 29.8 },
+  volume: { x: 138.5, y: 151.5, w: 29, h: 11.5 },
+  tuning: { cx: 152, cy: 181, r: 19.7 },
+  badge: { x: 127, y: 68.5, w: 58, h: 12 },
+  silk: { x: 10.5, y: 66 },
 };

@@ -11,11 +11,13 @@ import { buildNetlist, contactKey, type Netlist } from '../netlist/build.js';
 import { Simulation } from '../sim/transient.js';
 import { PanelCanvas, type Hit, type ViewState } from './panel-canvas.js';
 import { Scope } from './probe.js';
-import { REPLICA } from './skins/replica.js';
+import { BLACK } from './skins/black.js';
+import { GREY } from './skins/grey.js';
 import { SCHEMATIC } from './skins/schematic.js';
 import type { Skin } from './skins/skin.js';
 
-const SKINS: Skin[] = [REPLICA, SCHEMATIC];
+/** The grey unit is the one we have an orthogonal reference photograph of, so it leads. */
+const SKINS: Skin[] = [GREY, BLACK, SCHEMATIC];
 
 export class App {
   private readonly board = new Board();
@@ -28,7 +30,7 @@ export class App {
   private netlist: Netlist;
 
   private view: ViewState = {
-    skin: REPLICA,
+    skin: GREY,
     dragging: null,
     dragPos: null,
     hover: null,
@@ -69,9 +71,12 @@ export class App {
       this.view.station = s.station;
       this.view.tunedHz = s.tunedHz;
       this.view.level = s.peak;
+      const rate = s.solverRate
+        ? ` · решатель ${Math.round(s.solverRate / 1000)} кГц` +
+          (s.solverRate < 24_000 ? ' (упрощённый расчёт)' : '')
+        : '';
       this.setStatus(
-        `${s.running ? 'питание подано' : 'ожидание'} · решатель ${Math.round(s.solverRate / 1000)} кГц` +
-          (s.solverRate < 24_000 ? ' (упрощённый расчёт)' : '') +
+        `${s.running ? 'питание подано' : 'ожидание'}${rate}` +
           (s.converged ? '' : ' · схема не сходится'),
       );
       this.dirty = true;
@@ -396,10 +401,7 @@ export class App {
 
     if (this.dirty) {
       this.panel.render(this.board, this.view);
-      this.scope.render(
-        this.view.skin.id === 'replica' ? '#0c0c0e' : '#ffffff',
-        this.view.skin.id === 'replica' ? '#1e1e23' : '#e7e4dc',
-      );
+      this.scope.render(this.view.skin.scope.background, this.view.skin.scope.grid);
       this.dirty = false;
     }
     requestAnimationFrame(this.frame);

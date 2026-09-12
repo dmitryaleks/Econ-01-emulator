@@ -4,3 +4,6 @@ dist/
 .idea/
 research/
 *.local
+
+# Reference photographs used for the reverse engineering. Third-party images, kept local.
+assets/
