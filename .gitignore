@@ -11,3 +11,6 @@ assets/*
 # The blocks registry (crops + structured data) is our own reverse-engineering work, not
 # third-party material, so it's tracked despite living under assets/.
 !assets/blocks/
+
+# The Приложение 3 scans are the source the built-in circuitry is transcribed from (SPEC §5).
+!assets/core/
