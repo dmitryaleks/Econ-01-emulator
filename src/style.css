@@ -265,3 +265,16 @@ main {
   border-color: var(--yellow);
   color: var(--yellow);
 }
+
+.circuit-flag {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.circuit.inert .circuit-title {
+  opacity: 0.75;
+}

@@ -328,9 +328,14 @@ export class App {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'circuit';
+        const flags: string[] = [];
+        if (!circuit.simulates) flags.push('<b>пока не считается</b>');
+        if (!circuit.kitLegal) flags.push('нужны дополнительные провода');
         btn.innerHTML =
           `<span class="circuit-title">${circuit.title}</span>` +
-          `<span class="circuit-note">${circuit.description}</span>`;
+          `<span class="circuit-note">${circuit.description}</span>` +
+          (flags.length ? `<span class="circuit-flag">${flags.join(' · ')}</span>` : '');
+        btn.classList.toggle('inert', !circuit.simulates);
         btn.addEventListener('click', () => {
           loadCircuit(this.board, circuit);
           this.view.probes = [];

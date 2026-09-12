@@ -130,10 +130,19 @@ Transcribe the 30 mounting drawings from `research/manual/book/10…39.png` into
 `src/circuits/` (Russian title, description, cube placements with rotations, expected behaviour).
 Loading a preset fills the board; the solver still runs it for real.
 
-Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`) and **one worked
-example**, the detector receiver — a kit-legal reconstruction, not a manual layout, which proves
-the whole chain end to end (antenna → tuned circuit → Д9Б → XT4 → amplifier → loudspeaker) and
-demonstrably goes quiet when you tune off station.
+Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`) and three circuits.
+
+- **Детекторный приёмник** — kit-legal reconstruction, fully working: it proves the whole chain
+  end to end (antenna → tuned circuit → Д9Б → XT4 → amplifier → loudspeaker) and demonstrably
+  goes quiet when you tune off station.
+- **Мультивибратор (устройство 6)** — the first genuine factory circuit, transcribed from the
+  schematic on page 15 with `assets/multivibrator-chart.png` as the matching mounting drawing.
+  Asymmetric arms (68 кОм / 0,01 мкФ against 12 кОм / 3300 пФ) and the кнопка in the common
+  emitter return, so the oscillator has no path to ground until the button is held. Its netlist
+  is verified against the schematic; it does not yet make a sound, see the defect below.
+- **Мультивибратор** — the symmetric archetype, same defect.
+
+Presets carry two honest flags, `kitLegal` and `simulates`, and the UI shows both.
 
 The 30 authentic layouts are blocked on SPEC §8 open question 1: the exact pinout of the
 "adjacent" module variants. The mounting drawings settle it — a single careful transcription of
@@ -144,6 +153,37 @@ mode exists.
 
 **Done when** each preset has a golden test: load, run 2 s, assert the expected outcome
 (oscillation frequency band, audio RMS, or quiescent current).
+
+## Known defect: astable start-up ◻ blocks the multivibrator presets
+
+**Symptom.** Every preset built on an astable multivibrator loads with a correct netlist and
+then sits silent. `test/circuits.test.ts` verifies device 6's netlist component by component
+against the manual's schematic, so the transcription is right; the solver is what fails.
+
+**Cause.** An astable's DC operating point is a genuine unstable equilibrium — both transistors
+saturated, both coupling capacitors at rest. `Simulation` starts every transient from exactly
+that point, so it balances there forever. A real one escapes during switch-on, when both
+devices pass through the active region and the stronger one wins.
+
+**What was tried, and what it cost** (all reverted; the solver in the repo is the known-good one):
+
+| Attempt | Result |
+|---|---|
+| Per-device parameter spread (real parts are never identical) | Correct and cheap, but not sufficient alone |
+| Cold start — capacitors discharged before the transient | Necessary, not sufficient |
+| Ramping the supply over 0,05–20 ms to model the switch closing | Starts it, but the circuit then **latches** like a bistable |
+| Emitter-base avalanche clamp at −6 V | Right physics — a real astable's base does break down every cycle, and without it the model ran to −539 V — but not the blocker |
+| Rewriting `limitJunction` as SPICE's continuous `pnjlim` | A real bug fixed: the old one snapped to `vcrit` on a falling junction voltage, which is textbook limit-cycle behaviour. Still not sufficient |
+| Adaptive sub-stepping down to h/64 | Produces a plausible 1,3 кГц square wave, but **87 % of steps need subdivision at every sample rate from 96 к to 768 кГц**, and it runs at 0,02× real time |
+
+**Diagnosis.** Subdivision rate is flat across two decades of timestep, so this is not stiffness:
+Newton is limit-cycling in the nonlinear iteration itself, and 2000 iterations do not help. The
+remaining suspects are the convergence criterion (currently on node voltages only — SPICE also
+tests device currents) and residual discontinuity in the limiting scheme.
+
+**Next step.** Reproduce the limit cycle on the smallest possible circuit — two cross-coupled
+transistors, no amplifier — and print the iterate sequence for one failing step. That will show
+whether it oscillates between two states (limiting) or wanders (criterion).
 
 ## Phase 9 — Polish ◻ partly done
 
