@@ -108,6 +108,8 @@ two different modules if their icons differ; give each its own block.
     `Транзистор КТ315Б` → `Transistor, silicon NPN type KT315B` (Д → D, Б → B).
   - `Сердечник 400НН-8×80 мм` → `Core: ferrite grade 400NN, 8 × 80 mm` (diameter × length);
     `ПЭВ-2` → `PEV-2 enamelled wire`.
+  - `Перемычка «Угол»` → `Jumper link "Corner" (Ugol)`: translate the name, keep it transliterated
+    in brackets. Крест = Cross, Щель = Slot, Линия = Line, Тройник = Tee, Мостик = Bridge.
 - `schematic_prop` by kind:
   - `resistor`: `series`, `power_watts`, `value` (ohm), `tolerance_pct`.
   - `capacitor`: `series`, `temp_coeff_group`, `value` (farad; `1e-8` for 0,01 мкФ),
@@ -116,12 +118,16 @@ two different modules if their icons differ; give each its own block.
   - `electrolytic`: `series`, `polarized: true`, `voltage_rating_v`, `value` (farad).
   - `diode`: `model`, `material`, `count` when one module holds several.
   - `bjt`: `model`, `polarity`, `material`.
+  - `link`: just `{ "kind": "link" }`; its whole behaviour is in `pinout`.
   - antenna (`inductor`): `core` {`material`, `grade`, `diameter_mm`, `length_mm`} and `windings`,
     each {`name`, `turns_sections`, `wire`, `wire_diameter_mm`}. A tapped winding lists its sections
     (`100+230` → `[100, 230]`). No inductance is printed, so there is no `value`.
   - Only record what's printed or already established in SPEC.md. If no tolerance is printed, leave
     the tolerance fields out and say so in `notes`.
-- `num_in_kit`: count identical icon+text rows; otherwise check SPEC.md's module table.
+- `num_in_kit`: count identical icon+text rows; otherwise check SPEC.md's module table. The table
+  lists each link type once even though the kit has several (Щель 2, Линия 4, Тройник 4, Мостик 4),
+  so for links always take SPEC.md's count and say so in `notes`. Sanity check: all entries'
+  `num_in_kit` should end up summing to 37 (36 cubes + the antenna).
 - `pinout`: `status: "unknown"`, empty `connections`, unless the user has given the pinout. Don't
   read pinouts off icons as fact. A user-given pinout is `status: "confirmed"`, `source: "user"`,
   one connection per element or plain wire, written as the user describes it. Two-terminal parts and

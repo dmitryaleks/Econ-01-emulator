@@ -495,6 +495,96 @@
       "source": ""
     },
     "notes": "OCR'd from blocks_019-019_raw_table.png. One cell tall and six wide; fits only the antenna slot, as drawn. L1 is one winding tapped into 100 + 230 turns. No inductance is printed; catalogue.ts:ant estimates it from the turn counts. In the icon, L2 (short winding, top) sits above the tapped L1, and leads reach the top edge in several places and the right end, but none reaches the left end or the bottom edge; catalogue.ts:ant puts a contact on the left end, which this drawing doesn't show. Its contacts sit at positions along a six-cell bar, which the N/E/S/W face format can't express yet (SPEC.md §8 open question 4). Probably catalogue.ts:ant."
+  },
+  {
+    "name": "block_020",
+    "short_id": "TU",
+    "category": "link",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Перемычка «Угол»",
+    "eng_interpret": "Jumper link \"Corner\" (Ugol)",
+    "schematic_prop": { "kind": "link" },
+    "raw_orig_icon": "block_020.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_020-024_raw_table.png, row 1. Icon: lines from the centre to E and to S. Probably catalogue.ts:j-ugol, which has N–E: the same corner, turned. num_in_kit from SPEC.md."
+  },
+  {
+    "name": "block_021",
+    "short_id": "UV",
+    "category": "link",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Перемычка «Крест»",
+    "eng_interpret": "Jumper link \"Cross\" (Krest)",
+    "schematic_prop": { "kind": "link" },
+    "raw_orig_icon": "block_021.png",
+    "num_in_kit": 1,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_020-024_raw_table.png, row 2. Icon: lines from a centre dot to all four faces. Probably catalogue.ts:j-krest (all four joined). num_in_kit from SPEC.md."
+  },
+  {
+    "name": "block_022",
+    "short_id": "VW",
+    "category": "link",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Перемычка «Щель»",
+    "eng_interpret": "Jumper link \"Slot\" (Shchel)",
+    "schematic_prop": { "kind": "link" },
+    "raw_orig_icon": "block_022.png",
+    "num_in_kit": 2,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_020-024_raw_table.png, row 3. Icon: two parallel chords that don't meet, one from the top rim to the left rim and one from the right rim to the bottom rim. Read the way block_003's confirmed icon reads (a line reaching the rim is a contact), that is two separate corner links, N–W and E–S. SPEC.md and catalogue.ts:j-shchel instead treat it as a blank with a prising slot and no connection. Needs confirming. num_in_kit from SPEC.md."
+  },
+  {
+    "name": "block_023",
+    "short_id": "WX",
+    "category": "link",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Перемычка «Линия»",
+    "eng_interpret": "Jumper link \"Line\" (Liniya)",
+    "schematic_prop": { "kind": "link" },
+    "raw_orig_icon": "block_023.png",
+    "num_in_kit": 4,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_020-024_raw_table.png, row 4. Icon: one line straight W–E. Probably catalogue.ts:j-liniya (W–E). num_in_kit from SPEC.md."
+  },
+  {
+    "name": "block_024",
+    "short_id": "XY",
+    "category": "link",
+    "shape": "cube",
+    "width_cells": 1,
+    "rus_orig_desc": "Перемычка «Тройник»",
+    "eng_interpret": "Jumper link \"Tee\" (Troynik)",
+    "schematic_prop": { "kind": "link" },
+    "raw_orig_icon": "block_024.png",
+    "num_in_kit": 4,
+    "pinout": {
+      "status": "unknown",
+      "connections": [],
+      "source": ""
+    },
+    "notes": "OCR'd from blocks_020-024_raw_table.png, row 5. Icon: lines from a centre dot to W, E and S. Probably catalogue.ts:j-troynik (W, E and S joined). num_in_kit from SPEC.md."
   }
 ]
 }
