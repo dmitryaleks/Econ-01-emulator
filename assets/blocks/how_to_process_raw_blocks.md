@@ -137,8 +137,23 @@ two different modules if their icons differ; give each its own block.
   one connection per element or plain wire, written as the user describes it. Two-terminal parts and
   wires are `{from, to, via}`; for a diode or electrolytic `from` is the anode / +. A part with more
   legs is `{via, terminals: {base: "W", ...}}`. Both forms are defined in the file's
-  `connection_convention`. Record the pinout as given, then enlarge the icon and note any line it
-  leaves out. Mention the likely `catalogue.ts` id in `notes`: the table's row
-  order follows the catalogue's. Flag it when the icon's drawing style disagrees with that entry's
-  opposite/adjacent span.
-- Validate: the JSON parses, every `raw_orig_icon` exists, and `name` and `short_id` are unique.
+  `connection_convention`. A button is `{via: "button", terminals: {a, b, c}}`: all joined while
+  held. On a wide module, name contacts by cell position: `N1`…`N6`, `S1`…`S6`, with `W`/`E` for the
+  ends (`face_convention`); an inductor section may carry `winding` and `turns`. Record the pinout
+  as given, then enlarge the icon and note any line it leaves out. Mention the likely `catalogue.ts`
+  id in `notes`: the table's row order follows the catalogue's.
+- Validate: the JSON parses, every `raw_orig_icon` exists, `name` and `short_id` are unique, and
+  every connection's faces are valid for the module's width.
+
+## 4. Confirm pinouts with the user
+
+The icons encode the wiring: every line that reaches the rim at N, E, S or W is a contact, a chord
+near the rim is a plain wire between the two faces it joins, and a line that humps over another
+crosses it without touching. All 26 blocks were confirmed this way, and every as-drawn reading
+turned out right, including extra wires `catalogue.ts` lacks.
+
+To confirm: render the icons enlarged (3–5×) with N/E/S/W labels (cell numbers N1…N6 on the
+antenna) and read each one. Then ask with AskUserQuestion, four blocks a round, with the as-drawn
+reading as the first option and the catalogue's version or "not sure" as the second. Say what the
+icon shows in the question itself, since the user can't see it there. Record each round before the
+next. A blot or ambiguity gets its own question with your best reading spelled out.
