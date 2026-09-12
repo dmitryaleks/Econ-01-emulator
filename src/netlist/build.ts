@@ -38,26 +38,8 @@ export interface NlBjt {
   kind: 'Q'; name: string; base: NetId; collector: NetId; emitter: NetId; model: string;
 }
 export interface NlVSource { kind: 'V'; name: string; p: NetId; n: NetId; volts: number }
-/**
- * The sealed low-frequency amplifier of Приложение 3, as a block. Output between p and n,
- * driven by the voltage across cp..cn, saturating at the supply rails.
- */
-export interface NlAmp {
-  kind: 'A';
-  name: string;
-  p: NetId;
-  n: NetId;
-  cp: NetId;
-  cn: NetId;
-  gain: number;
-  /** Output swings no further than this either way. */
-  clip: number;
-  /** Output resistance of the emitter-follower pair. */
-  rout: number;
-}
-
 export type NlElement =
-  | NlResistor | NlCapacitor | NlInductor | NlDiode | NlBjt | NlVSource | NlAmp;
+  | NlResistor | NlCapacitor | NlInductor | NlDiode | NlBjt | NlVSource;
 
 export interface Netlist {
   elements: NlElement[];
@@ -219,7 +201,9 @@ export function buildNetlist(board: Board): Netlist {
   }
 
   // --- 6. Built-in amplifier, battery, controls (Приложение 3) -------------------------------
-  addBuiltIn(elements, board);
+  // Terminals the field may have shorted together share one net, so resolve names through the
+  // same union-find the field used.
+  addBuiltIn(elements, board, (name) => uf.find(name));
 
   const contactNet = new Map<string, NetId>();
   for (const key of contactKeys) contactNet.set(key, uf.find(key));
@@ -228,7 +212,7 @@ export function buildNetlist(board: Board): Netlist {
     elements,
     nets: [...new Set(elements.flatMap(elementNets))],
     ground: uf.find(FIXED_NETS.GND),
-    speaker: { p: 'SPK', n: uf.find(FIXED_NETS.GND) },
+    speaker: { p: uf.find(FIXED_NETS.SPK), n: uf.find(FIXED_NETS.GND) },
     contactNet,
     antenna,
   };
@@ -281,38 +265,47 @@ function elementNets(el: NlElement): NetId[] {
       return [el.base, el.collector, el.emitter];
     case 'V':
       return [el.p, el.n];
-    case 'A':
-      return [el.p, el.n, el.cp, el.cn];
   }
 }
 
 /**
- * The five-transistor low-frequency amplifier inside the case, plus the battery, the volume
- * potentiometer, the power switch and the tuning capacitor. Values from SPEC.md §5.2.
+ * Everything inside the case, transistor by transistor as drawn in Приложение 3
+ * (`assets/core/core-schematics.png`): the battery and the power switch ganged with the volume
+ * control, R3 and its decoupling that feed XT3, the tuning capacitor C10, the input network
+ * behind XT4, the five-transistor amplifier and the loudspeaker. Values from SPEC.md §5.2.
  */
-function addBuiltIn(elements: NlElement[], board: Board): void {
+function addBuiltIn(elements: NlElement[], board: Board, net: (name: string) => NetId): void {
   const G = FIXED_NETS.GND;
-  const V = FIXED_NETS.VCC;
   const on = powerOn(board.controls);
 
   const R = (name: string, a: string, b: string, ohms: number): void => {
-    elements.push({ kind: 'R', name, a, b, ohms });
+    elements.push({ kind: 'R', name, a: net(a), b: net(b), ohms });
   };
   const C = (name: string, a: string, b: string, farads: number): void => {
-    elements.push({ kind: 'C', name, a, b, farads });
+    elements.push({ kind: 'C', name, a: net(a), b: net(b), farads });
+  };
+  const Q = (name: string, model: string, base: string, collector: string, emitter: string) => {
+    elements.push({
+      kind: 'Q', name, base: net(base), collector: net(collector), emitter: net(emitter), model,
+    });
   };
 
-  // Battery and the power switch, which is ganged with the volume control.
-  elements.push({ kind: 'V', name: 'GB1', p: FIXED_NETS.BATT_P, n: G, volts: 8.7 });
-  R('SW1', FIXED_NETS.BATT_P, V, on ? 0.05 : 1e12);
+  // Battery, and the switched rail the amplifier runs from.
+  const RAIL = 'A_RAIL';
+  elements.push({ kind: 'V', name: 'GB1', p: net(FIXED_NETS.BATT_P), n: net(G), volts: 8.7 });
+  R('SW1', FIXED_NETS.BATT_P, RAIL, on ? 0.05 : 1e12);
+
+  // XT3 is not the rail itself: R3 limits what the field can draw, C4 and C2 decouple it.
+  const V = FIXED_NETS.VCC;
+  R('R3', RAIL, V, 820);
+  C('C4', V, G, 50e-6);
   C('C2', V, G, 0.022e-6);
-  C('C9', V, G, 0.022e-6);
 
   // Tuning capacitor C10 across XT5 and XT6.
   C('C10', FIXED_NETS.C10_A, FIXED_NETS.C10_B, c10Farads(board.controls.tuning));
 
-  // Input network exactly as drawn: XT4 -> R1 -> the volume pot, with C1 and C3 shunting
-  // radio frequencies to ground, then C5 coupling into the amplifier proper.
+  // Input network: XT4 -> R1 -> the volume pot, with C1 and C3 shunting radio frequencies to
+  // ground, then C5 coupling into the base of VT1.
   const IN = FIXED_NETS.AMP_IN;
   R('R1', IN, 'A_R1', 1.5e3);
   C('C1', IN, G, 0.01e-6);
@@ -320,24 +313,35 @@ function addBuiltIn(elements: NlElement[], board: Board): void {
   const wiper = Math.min(Math.max(board.controls.volume, 0), 1);
   R('R2a', 'A_R1', 'A_W', Math.max(6.8e3 * (1 - wiper), 1));
   R('R2b', 'A_W', G, Math.max(6.8e3 * wiper, 1));
-  C('C5', 'A_W', 'A_IN', 20e-6);
-  // The amplifier's own input impedance.
-  R('RIN', 'A_IN', G, 3.3e3);
+  C('C5', 'A_W', 'A_B1', 20e-6);
 
-  // The five-transistor amplifier itself is a sealed block inside the case, drawn as the
-  // dashed box "A" in every device schematic of the manual. Modelled by its behaviour rather
-  // than transistor by transistor — see SPEC.md 5.3.
-  elements.push({
-    kind: 'A',
-    name: 'A1',
-    p: 'A_OUT',
-    n: G,
-    cp: 'A_IN',
-    cn: G,
-    gain: on ? 260 : 0,
-    clip: 3.6,
-    rout: 1.5,
-  });
-  C('C8', 'A_OUT', 'SPK', 100e-6);
-  R('BA1', 'SPK', G, 8);
+  // VT1: first stage, fed through the R6/C6 filter; R4 and R5 set its base from VT2's emitter.
+  R('R6', RAIL, 'A_F', 220);
+  C('C6', 'A_F', G, 50e-6);
+  R('R7', 'A_F', 'A_C1', 3.3e3);
+  Q('VT1', 'KT315B', 'A_B1', 'A_C1', 'A_E1');
+  R('R8', 'A_E1', G, 470);
+  R('R4', 'A_B1', G, 10e3);
+  R('R5', 'A_B1', 'A_N1', 30e3);
+
+  // VT2: second stage. Its emitter is bypassed by C7 and R10, and R11 closes the DC loop
+  // from the output midpoint.
+  Q('VT2', 'KT315B', 'A_C1', 'A_C2', 'A_N1');
+  R('R9', RAIL, 'A_C2', 4.7e3);
+  C('C7', 'A_N1', 'A_X7', 50e-6);
+  R('R10', 'A_X7', G, 30);
+  R('R11', 'A_N1', 'A_M', 1.8e3);
+
+  // VT3 drives the complementary emitter followers VT4 and VT5; R12 spreads their bases, R13
+  // bootstraps the driver's load from the loudspeaker side of C8, and C9 rolls off the top.
+  Q('VT3', 'MP26A', 'A_C2', 'A_D3', RAIL);
+  Q('VT4', 'MP38', 'A_D3', RAIL, 'A_M');
+  R('R12', 'A_D3', 'A_Q', 30);
+  Q('VT5', 'MP42B', 'A_Q', G, 'A_M');
+  R('R13', 'A_Q', FIXED_NETS.SPK, 820);
+  C('C9', RAIL, 'A_Q', 0.022e-6);
+
+  // Output capacitor and loudspeaker; the loudspeaker's live side is XT7.
+  C('C8', 'A_M', FIXED_NETS.SPK, 100e-6);
+  R('BA1', FIXED_NETS.SPK, G, 8);
 }

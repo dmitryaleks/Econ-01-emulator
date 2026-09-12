@@ -75,15 +75,20 @@ export function neighbour(cell: Cell, edge: Pin): Cell | null {
 
 /** Nets that exist whether or not any module is placed. */
 export const FIXED_NETS = {
-  /** Battery negative, chassis. XT1 and XT7. */
+  /** Battery negative, chassis. XT1. */
   GND: 'GND',
-  /** Battery positive after the power switch. XT2 and XT3. */
+  /**
+   * The supply the field gets: the switched battery through R3 (820 Ω), decoupled by C4 and C2.
+   * XT3.
+   */
   VCC: 'VCC',
   /** Low-frequency amplifier input. XT4. */
   AMP_IN: 'AMP_IN',
   /** Tuning capacitor C10 terminals. XT5 and XT6. */
   C10_A: 'C10_A',
   C10_B: 'C10_B',
+  /** The loudspeaker's live side, after the output capacitor C8. XT7. */
+  SPK: 'SPK',
   /** Battery positive before the switch, for the switch element itself. */
   BATT_P: 'BATT_P',
 } as const;
@@ -91,17 +96,17 @@ export const FIXED_NETS = {
 export type FixedNet = (typeof FIXED_NETS)[keyof typeof FIXED_NETS];
 
 /**
- * The seven right-edge terminals, top to bottom, and the fixed net each is wired to.
- * Index i is the terminal beside field row i.
+ * The seven right-edge terminals, top to bottom, and the net each is wired to (Приложение 3).
+ * Index i is the terminal beside field row i. XT2 is wired to nothing.
  */
-export const XT_NETS: readonly FixedNet[] = [
+export const XT_NETS: readonly (FixedNet | null)[] = [
   FIXED_NETS.GND, // XT1  row 0
-  FIXED_NETS.VCC, // XT2  row 1
+  null, // XT2  row 1
   FIXED_NETS.VCC, // XT3  row 2
   FIXED_NETS.AMP_IN, // XT4  row 3
   FIXED_NETS.C10_A, // XT5  row 4
   FIXED_NETS.C10_B, // XT6  row 5 (antenna slot)
-  FIXED_NETS.GND, // XT7  row 6 (bottom row)
+  FIXED_NETS.SPK, // XT7  row 6 (bottom row)
 ];
 
 export const XT_LABELS = ['XT1', 'XT2', 'XT3', 'XT4', 'XT5', 'XT6', 'XT7'] as const;

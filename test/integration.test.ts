@@ -6,53 +6,60 @@ import { Simulation, rms } from '../src/sim/transient.js';
 
 describe('modules on the field drive the real circuit', () => {
   /**
-   * VCC (XT2, right of row 1) -> 2,2 kΩ -> link -> lead -> XT1 (ground, right of row 0).
-   * Exercises the XT terminals, pad-to-pad adjacency, a supplied lead, the power switch
-   * and the solver in one go.
+   * XT3 (right of row 2) -> 2,2 kΩ -> link -> lead -> XT1 (ground, right of row 0).
+   * Exercises the XT terminals, pad-to-pad adjacency, a supplied lead, the power switch, R3
+   * behind XT3 and the solver in one go.
    */
-  function loadBoard(volume: number): Board {
+  function loadBoard(volume: number, lead = true): Board {
     const board = new Board();
     board.controls.volume = volume;
-    board.place('block_001', { col: 5, row: 1 }, 2); // resistor's single end on XT2, far end W
-    board.place('block_023', { col: 4, row: 1 }); // straight through
-    board.leads.push({
-      from: { cell: { col: 4, row: 1 }, edge: 'W' },
-      to: { cell: { col: 5, row: 0 }, edge: 'E' }, // XT1 = ground
-    });
+    board.place('block_001', { col: 5, row: 2 }, 2); // resistor's single end on XT3, far end W
+    board.place('block_023', { col: 4, row: 2 }); // straight through
+    if (lead) {
+      board.leads.push({
+        from: { cell: { col: 4, row: 2 }, edge: 'W' },
+        to: { cell: { col: 5, row: 0 }, edge: 'E' }, // XT1 = ground
+      });
+    }
     return board;
   }
 
-  it('draws 8,7 V / 2,2 kΩ when the power is on', () => {
-    const netlist = buildNetlist(loadBoard(0.5));
+  function operatingPoint(board: Board): { amps: number; xt3: number } {
+    const netlist = buildNetlist(board);
     const c = new Circuit(netlist);
     expect(c.dcOperatingPoint()).toBe(true);
-    // The resistor's far end is grounded, so its near end sits at the supply rail.
-    const drop = c.voltageAt('VCC');
-    expect(drop).toBeGreaterThan(8.5);
-    expect(drop).toBeLessThan(8.75);
+    return { amps: Math.abs(c.sourceCurrent('GB1', netlist)), xt3: c.voltageAt('VCC') };
+  }
 
-    const iTotal = Math.abs(c.sourceCurrent('GB1', netlist));
-    // 3.95 mA through the test resistor plus the amplifier's own quiescent draw.
-    expect(iTotal).toBeGreaterThan(3.9e-3);
-    expect(iTotal).toBeLessThan(120e-3); // the manual's rated maximum
+  it('draws 8,7 V / (820 Ω + 2,2 kΩ) through XT3, on top of the amplifier', () => {
+    const loaded = operatingPoint(loadBoard(0.5));
+    const idle = operatingPoint(loadBoard(0.5, false));
+    const expected = 8.7 / (820 + 2200);
+    expect(loaded.amps - idle.amps).toBeGreaterThan(expected * 0.97);
+    expect(loaded.amps - idle.amps).toBeLessThan(expected * 1.03);
+    // R3 drops the rest, so XT3 sags to what the 2,2 kΩ leaves it.
+    expect(loaded.xt3).toBeGreaterThan(2200 * expected * 0.97);
+    expect(loaded.xt3).toBeLessThan(2200 * expected * 1.03);
+    expect(loaded.amps).toBeLessThan(120e-3); // the manual's rated maximum
+  });
+
+  it('idles at a few milliamps with nothing on the field', () => {
+    const { amps } = operatingPoint(withVolume(0.5));
+    expect(amps).toBeGreaterThan(2e-3);
+    expect(amps).toBeLessThan(20e-3);
   });
 
   it('draws essentially nothing with the volume control switched off', () => {
-    const netlist = buildNetlist(loadBoard(0));
-    const c = new Circuit(netlist);
-    c.dcOperatingPoint();
-    expect(c.voltageAt('VCC')).toBeLessThan(0.01);
-    expect(Math.abs(c.sourceCurrent('GB1', netlist))).toBeLessThan(1e-6);
+    const off = operatingPoint(loadBoard(0));
+    expect(off.xt3).toBeLessThan(0.01);
+    expect(off.amps).toBeLessThan(1e-6);
   });
 
-  it('breaking the circuit stops the current', () => {
-    const board = loadBoard(0.5);
-    board.leads.length = 0; // pull the lead out
-    const netlist = buildNetlist(board);
-    const c = new Circuit(netlist);
-    c.dcOperatingPoint();
-    const i = Math.abs(c.sourceCurrent('GB1', netlist));
-    expect(i).toBeLessThan(50e-3);
+  it('breaking the circuit stops the current through it', () => {
+    const idle = operatingPoint(loadBoard(0.5, false));
+    const bare = operatingPoint(withVolume(0.5));
+    expect(Math.abs(idle.amps - bare.amps)).toBeLessThan(1e-6);
+    expect(idle.xt3).toBeGreaterThan(8.6);
   });
 });
 

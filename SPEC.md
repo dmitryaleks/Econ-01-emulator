@@ -217,12 +217,16 @@ presented to the field through terminals **XT1…XT7**.
 | Terminal | Function |
 |---|---|
 | **XT1** | common / 0 V (battery −) |
-| **XT2** | +8.7 V, switched (same node as XT3) |
-| **XT3** | +8.7 V, switched |
+| **XT2** | **wired to nothing** |
+| **XT3** | supply for the field: the switched +8.7 V rail **through R3 (820 Ω)**, decoupled by C4 50 µF and C2 0,022 µF |
 | **XT4** | amplifier input → R1/C1/C3 → volume pot R2 → C5 → base of VT1 |
 | **XT5** | tuning capacitor C10, terminal 1 |
 | **XT6** | tuning capacitor C10, terminal 2 |
-| **XT7** | common / 0 V (same node as XT1) |
+| **XT7** | **the loudspeaker's live side**, after the output capacitor C8 (R13 bootstraps the driver from it) |
+
+**[C]** Functions read off the clean scan of Приложение 3, `assets/core/core-schematics.png`.
+R3 means the field never sees a stiff supply: whatever a device draws from XT3 drops across
+820 Ω, which also keeps a short on the field from flattening the battery.
 
 **[I]** The seven terminals are the contacts down the **right** edge of the field, top to bottom:
 XT1 beside main-grid row 1 … XT5 beside row 5, XT6 beside the antenna slot, XT7 beside the bottom
@@ -242,8 +246,8 @@ confirmed pinouts of §4, and checked against each device's schematic:
   the top strip, which the electrolytic in the top-right cell ties to XT1.
 
 Both layouts deliberately tie the top strip to XT1 with a module, so the strip is taken to be wired
-to nothing inside the case. XT2 and XT7 follow by sequence; no layout traced so far touches them
-decisively.
+to nothing inside the case. The positions of XT2 and XT7 follow by sequence; no layout traced so
+far touches them decisively.
 
 **[C]** In every one of the 30 device schematics the built-in amplifier appears as a dashed box
 labelled **«А»** showing only its XT terminals. Cross-checked: device 1 draws XT1 as its ground,
@@ -264,36 +268,44 @@ Semiconductors — **VT1, VT2 КТ315Б** (npn Si) · **VT3 МП26А** (pnp Ge) 
 
 Loudspeaker **BA1 0,5ГДШ-2**. Battery GB1 = 6 × А316 = 8.7 V.
 
-Topology, as far as the scan supports: VT1/VT2 are a two-stage preamplifier, VT3 (МП26А) drives
-the complementary germanium output pair VT4 (МП38, npn) / VT5 (МП42Б, pnp) into BA1, R3/C4
-decouple a sub-rail and C10 sits alone between XT5 and XT6 as the tuning element of whatever
-resonant circuit the user builds.
+Topology **[C]**, from `assets/core/core-schematics.png`:
+- GB1 → the switch ganged with R2 → the amplifier rail. R3 feeds XT3 from it (C4, C2 to ground).
+- XT4 → R1 → R2's top; C1 from XT4 and C3 from R2's top to ground; R2's wiper → C5 → VT1 base.
+- **VT1** (КТ315Б): collector load R7 from the R6/C6-filtered rail, emitter R8 to ground, base R4 to
+  ground and R5 to VT2's emitter.
+- **VT2** (КТ315Б): base on VT1's collector, collector load R9, emitter to ground through C7 + R10,
+  and R11 from its emitter to the output midpoint (the DC feedback loop).
+- **VT3** (МП26А, pnp): emitter on the rail, base on VT2's collector, collector on VT4's base and
+  through R12 on VT5's base.
+- **VT4** (МП38, npn) / **VT5** (МП42Б, pnp): complementary emitter followers, collectors on the
+  rail and ground, emitters joined at the output midpoint.
+- C8 (+ on the midpoint) → BA1 → ground; R13 from VT5's base to the loudspeaker side of C8
+  (bootstrap, which is XT7); C9 from the rail to VT5's base.
+- C10 sits alone between XT5 and XT6 as the tuning element of whatever resonant circuit the user
+  builds.
 
-### 5.3 How the emulator models it — and why
+### 5.3 How the emulator models it
 
-The **input network is modelled component by component** exactly as drawn: XT4 → R1 → the volume
-pot R2, with C1 and C3 shunting radio frequencies to ground and C5 coupling onward. So is the
-battery, the power switch ganged with the volume control, C10, C8 and the loudspeaker.
+**Everything inside the case is modelled part by part, exactly as drawn** in §5.2: the battery,
+the switch, R3 and its decoupling, C10, the input network, the five transistors with every
+resistor and capacitor around them, C8 and the loudspeaker. `netlist/build.ts` stamps it onto every
+board; nothing about the amplifier is scripted.
 
-The **five transistors themselves are modelled as one behavioural block**, not device by device.
-Two reasons, and the second is the honest one:
+An earlier version stood a behavioural block in for the transistors (gain ≈ 260, clipping at
+±3,6 V), because the old scan did not show the wiring. Those numbers were guesses. Checked against
+this circuit in the same solver, the block's sound was in the right range but it drew no current
+at all, so it was replaced.
 
-1. The manual draws the amplifier in every single device schematic as a sealed dashed box
-   labelled «А» with only XT1…XT7 showing. It is a black box in the real product too — the child
-   never sees inside it, and none of the 30 circuits depend on its internals.
-2. **The scan does not resolve its interconnections reliably.** The part *values* and *types*
-   above are legible and certain; which node each lead runs to is not. Wiring them up from
-   guesswork produced an amplifier that did not work, and a plausible-looking wrong schematic is
-   worse than an honest block.
+The transcription checks out on three independent counts **[C]**: the solver finds the output
+midpoint at 4,6 V, half the 8,7 V rail as a single-supply push-pull stage should sit; the
+amplifier idles at about 6,5 mA; and driven to clipping it draws about 130 mA, against the
+manual's rated maximum consumption of 120 mA (§2.1). Driven from XT4 at 1 kHz with the volume at
+0,8 its gain is about 60–75, rising with signal level as the germanium output stage leaves its
+crossover region, and it clips at about ±4 V into the 8 Ω head.
 
-The block is a saturating voltage amplifier: gain ≈ 260, output clipping at ±3,6 V (a 8,7 V
-single supply, so about half the rail either way), output resistance 1,5 Ω for the
-emitter-follower pair, 3,3 kΩ input impedance, feeding BA1 through C8. **[G]** Everything the
-user builds outside the dashed box is still solved exactly.
-
-**[G]** Germanium parameters, kept in `sim/models.ts` for user circuits and for the day the
-amplifier is reconstructed properly: МП26А / МП42Б `Is ≈ 2e-7 A`, `βF ≈ 40`; МП38 `Is ≈ 2e-7 A`,
-`βF ≈ 30`; forward `Vbe ≈ 0.25 V`. Speaker `Re = 8 Ω` **[G]** (0,5ГДШ-2 is an 8 Ω, 0.5 W head).
+**[G]** Germanium parameters in `sim/models.ts`: МП26А / МП42Б `Is ≈ 2e-7 A`, `βF ≈ 40`;
+МП38 `Is ≈ 2e-7 A`, `βF ≈ 30`; forward `Vbe ≈ 0.25 V`. Speaker `Re = 8 Ω` **[G]** (0,5ГДШ-2 is an
+8 Ω, 0.5 W head).
 
 ---
 
@@ -362,8 +374,8 @@ potentiometer, the power switch, the pushbutton, the loudspeaker load, and the a
 network. No behaviour is scripted: a wrongly built multivibrator does not oscillate, and a
 correctly built one oscillates at the frequency its own R and C dictate.
 
-The sealed amplifier block is the one *structural* simplification (§5.3); the behavioural radio
-below is the one *physical* one.
+The built-in amplifier is solved transistor by transistor too (§5.3), so the behavioural radio
+below is the one departure from first principles.
 
 ### 7.3 What is behavioural, and why
 
@@ -398,7 +410,6 @@ controls that vary a source or a resistance in the netlist.
 3. Titles of devices 7, 16, 21 and 23.
 4. ~~How the antenna module presents its windings.~~ Resolved: L1 on N2/N5, tap N6 and E; L2 on
    N3–N4, apart from L1 (§4).
-5. The interconnections of the built-in amplifier (§5.3). Resolving this needs a cleaner scan of
-   Приложение 3, or a photograph of the inner PCB's track side, and would let the five
-   transistors be simulated device by device like everything else.
+5. ~~The interconnections of the built-in amplifier.~~ Resolved from the clean scan of
+   Приложение 3; the amplifier is now simulated part by part (§5.2, §5.3).
 6. What the small ring on four module icons means (§4).

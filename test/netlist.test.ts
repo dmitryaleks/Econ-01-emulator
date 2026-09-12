@@ -126,14 +126,46 @@ describe('netlist assembly', () => {
     expect(nb.contactNet.has(contactKey({ col: 2, row: 2 }, 'W'))).toBe(false);
   });
 
-  it('always includes the built-in amplifier and battery', () => {
+  it('always includes the battery and the five-transistor amplifier of Приложение 3', () => {
     const net = buildNetlist(new Board());
     const names = net.elements.map((e) => e.name);
-    expect(names).toContain('GB1');
-    expect(names).toContain('BA1');
-    expect(names).toContain('C10');
-    expect(names).toContain('A1');
-    expect(net.elements.filter((e) => e.kind === 'A')).toHaveLength(1);
+    for (const n of ['GB1', 'SW1', 'R3', 'C4', 'C10', 'C8', 'BA1']) expect(names).toContain(n);
+    const models = Object.fromEntries(
+      net.elements.flatMap((e) => (e.kind === 'Q' ? [[e.name, e.model]] : [])),
+    );
+    expect(models).toEqual({
+      VT1: 'KT315B', VT2: 'KT315B', VT3: 'MP26A', VT4: 'MP38', VT5: 'MP42B',
+    });
+  });
+
+  it('wires XT2 to nothing, XT3 behind R3 and XT7 to the loudspeaker', () => {
+    const board = new Board();
+    for (const row of [1, 2, 6]) board.place('block_023', { col: 5, row }); // «Линия»
+    const net = buildNetlist(board);
+    const east = (row: number) => net.contactNet.get(contactKey({ col: 5, row }, 'E'));
+    expect(Object.values(FIXED_NETS)).not.toContain(east(1));
+    expect(east(2)).toBe(FIXED_NETS.VCC);
+    expect(east(6)).toBe(net.speaker.p);
+    const r3 = net.elements.find((e) => e.name === 'R3');
+    expect(r3?.kind === 'R' && [r3.a, r3.b].includes(FIXED_NETS.VCC) && r3.ohms).toBe(820);
+  });
+
+  it('keeps a short between two terminals when the field makes one', () => {
+    const board = new Board();
+    // A «Линия» turned N-S joins XT7 (right of the bottom row) to nothing; instead short XT3 to
+    // XT1 with a lead and check the amplifier's own parts see the same merged net.
+    board.leads.push({
+      from: { cell: { col: 5, row: 2 }, edge: 'E' },
+      to: { cell: { col: 5, row: 0 }, edge: 'E' },
+    });
+    const net = buildNetlist(board);
+    const r3 = net.elements.find((e) => e.name === 'R3');
+    const c4 = net.elements.find((e) => e.name === 'C4');
+    expect(r3?.kind === 'R' && c4?.kind === 'C').toBe(true);
+    if (r3?.kind !== 'R' || c4?.kind !== 'C') return;
+    // C4 sat between XT3 and ground; with the two shorted it has both ends on one net.
+    expect(c4.a).toBe(c4.b);
+    expect([r3.a, r3.b]).toContain(net.ground);
   });
 
   it('places the antenna only in its slot, and reports its windings', () => {

@@ -37,10 +37,6 @@ interface BjtState {
   vbePrev: number; vbcPrev: number; vcrit: number;
 }
 interface SrcState { name: string; p: number; n: number; volts: number; branch: number }
-interface AmpState {
-  p: number; n: number; cp: number; cn: number;
-  gain: number; clip: number; rout: number; branch: number;
-}
 
 export class Circuit {
   readonly nodeIndex = new Map<string, number>();
@@ -53,7 +49,6 @@ export class Circuit {
   private readonly diodes: DiodeState[] = [];
   private readonly bjts: BjtState[] = [];
   private readonly srcs: SrcState[] = [];
-  private readonly amps: AmpState[] = [];
 
   private readonly m: Matrix;
   private readonly x: Float64Array;
@@ -129,15 +124,6 @@ export class Circuit {
             vbcPrev: 0,
             vcrit: critVoltage(mdl.is, VT),
           });
-          break;
-        }
-        case 'A': {
-          const st: AmpState = {
-            p: idx(el.p), n: idx(el.n), cp: idx(el.cp), cn: idx(el.cn),
-            gain: el.gain, clip: el.clip, rout: el.rout, branch: 0,
-          };
-          this.amps.push(st);
-          needBranch.push((i) => (st.branch = i));
           break;
         }
         case 'V': {
@@ -298,23 +284,6 @@ export class Circuit {
     }
 
     for (const q of this.bjts) this.stampBjt(m, q);
-
-    for (const a of this.amps) {
-      // v(p) - v(n) - rout*i - g'*(v(cp) - v(cn)) = f(vin) - g'*vin
-      const vin = this.v(a.cp) - this.v(a.cn);
-      const x = (a.gain * vin) / a.clip;
-      const f = a.clip * Math.tanh(x);
-      const gp = a.gain / Math.cosh(x) ** 2;
-      const br = a.branch;
-      m.add(a.p, br, 1);
-      m.add(a.n, br, -1);
-      m.add(br, a.p, 1);
-      m.add(br, a.n, -1);
-      m.add(br, a.cp, -gp);
-      m.add(br, a.cn, gp);
-      m.add(br, br, -a.rout);
-      m.addRhs(br, f - gp * vin);
-    }
 
     for (const [net, amps] of this.injections) {
       const i = this.nodeIndex.get(net);
