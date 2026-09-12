@@ -66,7 +66,6 @@ const wire = (a: Lead['from'], b: Lead['to']): Lead => ({ from: a, to: b });
 const XT1 = at(0, 0, 'W'); // ground
 const XT2 = at(0, 1, 'W'); // +8,7 V
 const XT3 = at(0, 2, 'W'); // +8,7 V
-const XT7 = at(0, 6, 'W'); // ground
 
 /**
  * Detector receiver. The magnetic antenna's 100-turn section is put across the tuning
@@ -104,146 +103,91 @@ export const DETECTOR_RECEIVER: Circuit = {
 };
 
 /**
- * The astable multivibrator that manual devices 6, 8, 13, 27, 29 and 30 are all built around,
- * laid out so every element sits clear of its neighbours and the connections are made with
- * lead wire.
+ * Device 6 «Мультивибратор» from page 15 of the manual. The topology (which resistor and
+ * capacitor value sits where) is transcribed from `assets/multivibrator-schematics-raw.png`,
+ * the manual's clean redrawn schematic. The physical layout below follows the same general
+ * scheme visible in the factory mounting drawing `assets/multivibrator-chart.png` — the button
+ * and both transistors' emitters tied along the top row, collector loads reached from below —
+ * built with real link cubes rather than the loose leads used in the first transcription.
  *
- *   (1,3) RC1   (4,3) RC2    collector loads, vertical
- *   (1,4) Q1    (4,4) Q2     КТ315Б, collector up, emitter down
- *   (0,4) Cc2   (5,4) Cc1    timing capacitors, each already touching the base it drives
- *   (2,1) RB1   (4,1) RB2    base resistors
- */
-interface MvParts {
-  /** Timing capacitor driving Q2's base; must present contacts W and E. */
-  cc1: string;
-  cc1Rotation?: Rotation;
-  /** Timing capacitor driving Q1's base; must present contacts N and E. */
-  cc2: string;
-  cc2Rotation?: Rotation;
-  /** Base resistor for Q1; contacts W and E. */
-  rb1: string;
-  /** Base resistor for Q2; contacts N and E. */
-  rb2: string;
-  /** Cell for the output coupling capacitor. */
-  out: { col: number; row: number };
-}
-
-function multivibrator(p: MvParts): { placements: CircuitPlacement[]; leads: Lead[] } {
-  const placements: CircuitPlacement[] = [
-    { col: 1, row: 3, moduleId: 'r2k2-o', rotation: 1 }, // RC1, contacts N/S
-    { col: 4, row: 3, moduleId: 'r2k2-o', rotation: 1 }, // RC2, contacts N/S
-    { col: 1, row: 4, moduleId: 'q315-a', rotation: 0 }, // Q1: B=W, C=N, E=S
-    { col: 4, row: 4, moduleId: 'q315-b', rotation: 2 }, // Q2: B=E, C=N, E=S
-    { col: 5, row: 4, moduleId: p.cc1, rotation: p.cc1Rotation ?? 0 }, // W touches Q2's base
-    { col: 0, row: 4, moduleId: p.cc2, rotation: p.cc2Rotation ?? 0 }, // E touches Q1's base
-    { col: 2, row: 1, moduleId: p.rb1, rotation: 0 },
-    { col: 4, row: 1, moduleId: p.rb2, rotation: 0 },
-    { col: p.out.col, row: p.out.row, moduleId: 'c3n3-o', rotation: 0 },
-  ];
-
-  const leads: Lead[] = [
-    wire(XT2, at(1, 3, 'N')), // supply to RC1
-    wire(XT2, at(4, 3, 'N')), // supply to RC2
-    wire(XT3, at(2, 1, 'W')), // supply to RB1
-    wire(XT3, at(4, 1, 'N')), // supply to RB2
-    wire(at(2, 1, 'E'), at(1, 4, 'W')), // RB1 to Q1's base
-    wire(at(4, 1, 'E'), at(4, 4, 'E')), // RB2 to Q2's base
-    wire(at(1, 4, 'N'), at(5, 4, 'E')), // Q1 collector to the far side of Cc1
-    wire(at(4, 4, 'N'), at(0, 4, 'N')), // Q2 collector to the far side of Cc2
-    wire(XT1, at(1, 4, 'S')), // Q1 emitter to ground
-    wire(XT7, at(4, 4, 'S')), // Q2 emitter to ground
-    wire(at(1, 4, 'N'), at(p.out.col, p.out.row, 'E')), // Q1 collector to the output capacitor
-  ];
-
-  return { placements, leads };
-}
-
-const MV_NOTE =
-  'В коробке всего два провода, а здесь их одиннадцать: заводская разводка идёт по самому ' +
-  'полю, но её точный вид ещё не расшифрован. Модулей израсходовано ровно столько, сколько ' +
-  'их в наборе.';
-
-/** About a kilohertz, straight into the amplifier. */
-export const MULTIVIBRATOR: Circuit = {
-  id: 'multivibrator',
-  title: 'Мультивибратор',
-  description:
-    'Два транзистора КТ315Б поочерёдно открываются и закрываются, перезаряжая конденсаторы ' +
-    'через базовые резисторы. Частота задаётся произведением R и C — здесь около килогерца. ' +
-    MV_NOTE,
-  source: 'reconstruction (manual devices 6, 8, 13)',
-  kitLegal: false,
-  simulates: false,
-  volume: 0.5,
-  ...multivibrator({
-    cc1: 'c10n-o',
-    cc2: 'c10n-a',
-    rb1: 'r68k-o',
-    rb2: 'r68k-a',
-    out: { col: 0, row: 3 },
-  }),
-  expect: { minRms: 0.15, freqHz: [400, 2600] },
-};
-
-
-/**
- * Device 6 «Мультивибратор» from page 15 of the manual, transcribed from its schematic —
- * see `assets/multivibrator-chart.png` for the factory mounting drawing of the same circuit.
+ * Every «Тройник», «Линия», the one «Угол» and the one «Крест» the box contains are used here
+ * (4 + 4 + 1 + 1 — the whole link inventory), which is what it takes to keep the two
+ * transistors' collectors, bases and the button's emitter return all separately wired using
+ * only genuine cube-to-cube contact. Six connections still need lead wire: the box supplies
+ * two, so this stays `kitLegal: false`, but every one of those six is a long jump between
+ * far corners of the field (a base bias resistor or a cross-coupling capacitor reaching back
+ * to the supply rail or to the opposite transistor) — not a substitute for adjacency the way
+ * the original transcription's twelve leads were.
  *
- * Unlike the generic multivibrator above this one is asymmetric (68 kΩ / 0,01 мкФ on one side,
- * 12 кОм / 3300 пФ on the other) and, most distinctively, **the кнопка sits in the common
- * emitter return to XT1**: the oscillator has no path to ground until you hold the button down.
- *
- *   (0,0) SB        button, its W contact already on XT1
- *   (1,3) (4,3) RC1 RC2 2,2 кОм collector loads, sitting on the collectors below them
- *   (1,4) (4,4) Q1  Q2  КТ315Б
- *   (5,4) Cc1       0,01 мкФ, W already on Q2's base
- *   (2,3) Cc2       3300 пФ
- *   (2,1) RB1       12 кОм      (4,1) RB2 68 кОм
- *   (0,3) Cout      0,01 мкФ, its W contact already on XT4
+ *   (0,0) SB              button: W on XT1, E starts the emitter bus
+ *   (1,0) Тройник         bus continues, drops to Q1's emitter
+ *   (2,0) (3,0) Линия      bus straight through
+ *   (4,0) Угол             bus ends, drops to Q2's emitter
+ *   (1,1) Q1  (4,1) Q2     КТ315Б, both emitter=N (into the bus), collector=S
+ *   (2,1) (3,1) Тройник    Q1's / Q2's base, dropped one row down
+ *   (0,2) RC1  (5,2) RC2   2,2 кОм collector loads, against VCC
+ *   (1,2) Тройник          Q1's collector corner, into RC1
+ *   (2,2) (3,2) Линия      Q1's / Q2's base, dropped one more row
+ *   (4,2) Крест            Q2's collector: up to Q2, out to RC2 and to Cout
+ *   (1,3) Ccross_A 0,01 мкФ   Q1's collector, lead to Q2's base
+ *   (2,3) RB1 12 кОм          Q1's base, lead to VCC (joined with RB2's far side)
+ *   (3,3) RB2 68 кОм          Q2's base, joined to RB1's far side, lead to VCC
+ *   (4,3) Cout 0,01 мкФ       Q2's collector, lead to XT4
+ *   (5,3) Ccross_B 3300 пФ    lead from Q2's collector, lead to Q1's base
  */
 export const DEVICE_6: Circuit = {
   id: 'device6',
   title: 'Мультивибратор (устройство 6)',
   description:
     'Заводская схема со страницы 15 руководства. Плечи намеренно неодинаковы: слева ' +
-    '68 кОм и 0,01 мкФ, справа 12 кОм и 3300 пФ, поэтому импульс короткий, а пауза длинная. ' +
+    '12 кОм и 0,01 мкФ, справа 68 кОм и 3300 пФ, поэтому импульс короткий, а пауза длинная. ' +
     'Кнопка включена в общий провод эмиттеров: пока она не нажата, цепь разомкнута и ' +
-    'динамик молчит. Нажмите и удерживайте — появится тон около двух килогерц. ' + MV_NOTE,
-  source: 'manual page 15, device 6',
+    'динамик молчит. Нажмите и удерживайте — появится тон около двух килогерц. ' +
+    'Оба транзистора, оба резистора нагрузки коллектора и обе перекрёстные ёмкости стоят ' +
+    'настоящими кубиками на своих местах; шесть длинных перемычек — от коллектора к базе ' +
+    'напротив и от базовых резисторов к шине питания — сделаны проводом, потому что в ' +
+    'коробке всего один «Уголок» и один «Крест» на всё поле.',
+  source: 'manual page 15, device 6, cross-checked against multivibrator-schematics-raw.png',
   kitLegal: false,
   simulates: false,
   volume: 0.6,
   placements: [
-    { col: 0, row: 0, moduleId: 'sb', rotation: 0 }, // W lands on XT1
-    { col: 0, row: 3, moduleId: 'c10n-o2', rotation: 0 }, // W lands on XT4
-    { col: 1, row: 3, moduleId: 'r2k2-o', rotation: 1 }, // RC1, contacts N/S
-    { col: 4, row: 3, moduleId: 'r2k2-o', rotation: 1 }, // RC2, contacts N/S
-    { col: 1, row: 4, moduleId: 'q315-a', rotation: 0 }, // Q1: B=W, C=N, E=S
-    { col: 4, row: 4, moduleId: 'q315-b', rotation: 2 }, // Q2: B=E, C=N, E=S
-    { col: 5, row: 4, moduleId: 'c10n-o', rotation: 0 }, // Cc1, W on Q2's base
-    { col: 2, row: 3, moduleId: 'c3n3-o', rotation: 0 }, // Cc2
-    { col: 2, row: 1, moduleId: 'r12k-a', rotation: 0 }, // RB1, contacts N/E
-    { col: 4, row: 1, moduleId: 'r68k-o', rotation: 0 }, // RB2, contacts W/E
+    { col: 0, row: 0, moduleId: 'sb', rotation: 0 }, // W on XT1
+    { col: 1, row: 0, moduleId: 'j-troynik', rotation: 0 }, // W,E,S
+    { col: 2, row: 0, moduleId: 'j-liniya', rotation: 0 },
+    { col: 3, row: 0, moduleId: 'j-liniya', rotation: 0 },
+    { col: 4, row: 0, moduleId: 'j-ugol', rotation: 2 }, // S,W
+
+    { col: 1, row: 1, moduleId: 'q315-a', rotation: 2 }, // N=emitter,E=base,S=collector
+    { col: 2, row: 1, moduleId: 'j-troynik', rotation: 1 }, // N,S,W: W=Q1 base
+    { col: 3, row: 1, moduleId: 'j-troynik', rotation: 3 }, // N,E,S: E=Q2 base
+    { col: 4, row: 1, moduleId: 'q315-b', rotation: 0 }, // N=emitter,W=base,S=collector
+
+    { col: 0, row: 2, moduleId: 'r2k2-o', rotation: 0 }, // RC1: W=VCC
+    { col: 1, row: 2, moduleId: 'j-troynik', rotation: 1 }, // N,S,W: N=Q1 collector, W=RC1
+    { col: 2, row: 2, moduleId: 'j-liniya', rotation: 1 }, // N,S: relays Q1's base down
+    { col: 3, row: 2, moduleId: 'j-liniya', rotation: 1 }, // N,S: relays Q2's base down
+    { col: 4, row: 2, moduleId: 'j-krest', rotation: 0 }, // N=Q2 collector
+    { col: 5, row: 2, moduleId: 'r2k2-o', rotation: 0 }, // RC2: W=Q2 collector
+
+    { col: 1, row: 3, moduleId: 'c10n-o', rotation: 1 }, // Ccross_A 0,01 мкФ, N=Q1 collector
+    { col: 2, row: 3, moduleId: 'r12k-a', rotation: 0 }, // RB1, N=Q1 base
+    { col: 3, row: 3, moduleId: 'r68k-a', rotation: 3 }, // RB2, N=Q2 base, W joins RB1
+    { col: 4, row: 3, moduleId: 'c10n-o2', rotation: 1 }, // Cout 0,01 мкФ, N=Q2 collector
+    { col: 5, row: 3, moduleId: 'c3n3-o', rotation: 0 }, // Ccross_B 3300 пФ
   ],
   leads: [
-    wire(XT2, at(1, 3, 'N')), // supply to RC1
-    wire(XT2, at(4, 3, 'N')), // supply to RC2
-    wire(XT3, at(2, 1, 'N')), // supply to RB1 12k
-    wire(XT3, at(4, 1, 'W')), // supply to RB2 68k
-    wire(at(2, 1, 'E'), at(1, 4, 'W')), // RB1 to Q1's base
-    wire(at(4, 1, 'E'), at(4, 4, 'E')), // RB2 to Q2's base
-    wire(at(1, 4, 'N'), at(5, 4, 'E')), // Q1 collector to the far plate of Cc1
-    wire(at(4, 4, 'N'), at(2, 3, 'W')), // Q2 collector to Cc2
-    wire(at(2, 3, 'E'), at(1, 4, 'W')), // Cc2 to Q1's base
-    wire(at(4, 4, 'N'), at(0, 3, 'E')), // Q2 collector to the output capacitor
-    wire(at(0, 0, 'E'), at(1, 4, 'S')), // button to Q1's emitter
-    wire(at(1, 4, 'S'), at(4, 4, 'S')), // emitters tied together
+    wire(at(2, 3, 'E'), XT2), // RB1+RB2's joined far side to VCC
+    wire(at(5, 2, 'E'), XT3), // RC2 to VCC
+    wire(at(4, 3, 'S'), at(0, 3, 'W')), // Cout to XT4
+    wire(at(1, 3, 'S'), at(4, 1, 'W')), // Ccross_A to Q2's base
+    wire(at(4, 1, 'S'), at(5, 3, 'W')), // Q2's collector to Ccross_B
+    wire(at(5, 3, 'E'), at(2, 1, 'W')), // Ccross_B to Q1's base
   ],
   expect: { gatedByButton: true, minRms: 0.15, freqHz: [1200, 3200] },
 };
 
-export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, MULTIVIBRATOR];
+export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6];
 
 export function loadCircuit(board: Board, circuit: Circuit): void {
   board.clear();

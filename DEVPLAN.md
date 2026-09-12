@@ -130,17 +130,23 @@ Transcribe the 30 mounting drawings from `research/manual/book/10…39.png` into
 `src/circuits/` (Russian title, description, cube placements with rotations, expected behaviour).
 Loading a preset fills the board; the solver still runs it for real.
 
-Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`) and three circuits.
+Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`) and two circuits.
 
 - **Детекторный приёмник** — kit-legal reconstruction, fully working: it proves the whole chain
   end to end (antenna → tuned circuit → Д9Б → XT4 → amplifier → loudspeaker) and demonstrably
   goes quiet when you tune off station.
-- **Мультивибратор (устройство 6)** — the first genuine factory circuit, transcribed from the
-  schematic on page 15 with `assets/multivibrator-chart.png` as the matching mounting drawing.
-  Asymmetric arms (68 кОм / 0,01 мкФ against 12 кОм / 3300 пФ) and the кнопка in the common
-  emitter return, so the oscillator has no path to ground until the button is held. Its netlist
-  is verified against the schematic; it does not yet make a sound, see the defect below.
-- **Мультивибратор** — the symmetric archetype, same defect.
+- **Мультивибратор (устройство 6)** — the first genuine factory circuit. Topology transcribed
+  from `assets/multivibrator-schematics-raw.png` (asymmetric arms, 12 кОм / 0,01 мкФ against
+  68 кОм / 3300 пФ, кнопка in the common emitter return so the oscillator has no path to ground
+  until it's held); physical layout follows the general scheme of the factory mounting drawing
+  `assets/multivibrator-chart.png` (emitter bus and both transistors along the top, collector
+  loads reached from below), built with real link-cube adjacency rather than loose wires —
+  it uses all four «Тройник», all four «Линия», the one «Угол» and the one «Крест» the box
+  contains. Six lead wires remain, all long jumps (a base-bias resistor or a cross-coupling
+  capacitor reaching the supply rail or the opposite transistor's base), not substitutes for
+  adjacency — the box ships two, so this is honestly `kitLegal: false`. Its netlist is verified
+  component by component against the schematic; it does not yet make a sound, see the defect
+  below.
 
 Presets carry two honest flags, `kitLegal` and `simulates`, and the UI shows both.
 
