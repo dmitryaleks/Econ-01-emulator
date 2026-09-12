@@ -132,7 +132,7 @@ Transcribe the 30 mounting drawings from `research/manual/book/10…39.png` into
 Loading a preset fills the board; the solver still runs it for real.
 
 Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`), the module
-registry, the panel terminal map, and two circuits.
+registry, the panel terminal map, and three circuits.
 
 - **Module registry** — `assets/blocks/block_spec.json` holds every module type with a confirmed
   face-to-face pinout, and `src/model/catalogue.ts` is generated from it. Module ids are the
@@ -148,15 +148,19 @@ registry, the panel terminal map, and two circuits.
   30 cells filled, no leads, `kitLegal: true`. Its netlist, traced from contact alone, is the
   schematic, and the test checks it part by part. It does not yet make a sound; see the defect
   below.
+- **Электронная няня (устройство 26)** — transcribed the same way, antenna included, and checked
+  part by part against its schematic. It is a radio-frequency oscillator on the antenna, which an
+  audio-rate solver cannot run, so `simulates: false`. Its two supplied wires are a moisture probe
+  with free ends, which the lead model (contact to contact) cannot express yet, so they are
+  described rather than placed.
 
 Presets carry two honest flags, `kitLegal` and `simulates`, and the UI shows both.
 
 With the pinouts confirmed, each of the other layouts is a mechanical transcription: crop the
 chart cell by cell, match every icon to a block and rotation, then trace the netlist from contact
-alone and compare it with the schematic. Device 26 «Электронная няня» is already transcribed this
-way (it settled XT1, XT5 and XT6) and needs only a preset entry. The factory fills every cell and
-uses some parts only for their wires, so a hand-designed circuit generally will not fit the box;
-that is why free-play mode exists.
+alone and compare it with the schematic. The factory fills every cell and uses some parts only for
+their wires, so a hand-designed circuit generally will not fit the box; that is why free-play mode
+exists.
 
 **Done when** each preset has a golden test: load, run 2 s, assert the expected outcome
 (oscillation frequency band, audio RMS, or quiescent current).

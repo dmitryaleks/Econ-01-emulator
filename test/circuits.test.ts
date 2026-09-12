@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CIRCUITS, DEVICE_6, loadCircuit, type Circuit } from '../src/circuits/index.js';
+import { CIRCUITS, DEVICE_26, DEVICE_6, loadCircuit, type Circuit } from '../src/circuits/index.js';
 import { Board } from '../src/model/board.js';
 import { MODULE_BY_ID } from '../src/model/catalogue.js';
-import { buildNetlist } from '../src/netlist/build.js';
+import { ANTENNA_ROW, FIXED_NETS } from '../src/model/panel.js';
+import { buildNetlist, contactKey, type Netlist } from '../src/netlist/build.js';
 import { Simulation, dominantFrequency, rms } from '../src/sim/transient.js';
 
 const FS = 96_000;
@@ -64,14 +65,7 @@ describe('«Мультивибратор» device 6 matches the factory schemati
   const netlist = buildNetlist(board);
   const mine = netlist.elements.filter((e) => e.name.includes('@'));
 
-  /** Is there a resistor or capacitor of this value between exactly these two nets? */
-  const joins = (kind: 'R' | 'C', value: number, a: string, b: string): boolean =>
-    mine.some(
-      (e) =>
-        e.kind === kind &&
-        (e.kind === 'R' ? e.ohms === value : e.kind === 'C' && e.farads === value) &&
-        [e.a, e.b].sort().join('|') === [a, b].sort().join('|'),
-    );
+  const joins = joinsIn(netlist);
 
   // Q1 is the left-hand arm of the schematic (12 кОм base bias), Q2 the right-hand one.
   const q1 = mine.find((e) => e.kind === 'Q' && e.name.startsWith('block_017'));
@@ -134,6 +128,94 @@ describe('«Мультивибратор» device 6 matches the factory schemati
   it('needs no lead and stays within the box', () => {
     expect(DEVICE_6.leads ?? []).toHaveLength(0);
     expect(board.placements.size).toBe(30);
+  });
+});
+
+/** Is there a resistor or capacitor of this value, on a module, between exactly these nets? */
+function joinsIn(netlist: Netlist) {
+  const mine = netlist.elements.filter((e) => e.name.includes('@'));
+  return (kind: 'R' | 'C', value: number, a: string, b: string): boolean =>
+    mine.some(
+      (e) =>
+        e.kind === kind &&
+        (e.kind === 'R' ? e.ohms === value : e.kind === 'C' && e.farads === value) &&
+        [e.a, e.b].sort().join('|') === [a, b].sort().join('|'),
+    );
+}
+
+/** Device 26's netlist checked part by part against the schematic on page 35. */
+describe('«Электронная няня» device 26 matches the factory schematic', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_26);
+  const netlist = buildNetlist(board);
+  const joins = joinsIn(netlist);
+  const q = netlist.elements.find((e) => e.kind === 'Q' && e.name.startsWith('block_017'));
+  const coils = netlist.elements.filter((e) => e.kind === 'L');
+  const l1Start = coils.find((e) => e.kind === 'L' && e.henries === 0.51e-3);
+  const l1End = coils.find((e) => e.kind === 'L' && e.henries === 5.1e-3);
+  const ant = netlist.antenna!;
+  const clip = (row: number) => netlist.contactNet.get(contactKey({ col: 0, row }, 'W'));
+
+  /** The input node: 680 пФ's far side, the start of L2, and the row-4 clip point. */
+  const input = ant.coupling[0];
+
+  it('fills all 30 cells, with the antenna in its slot', () => {
+    expect(board.placements.size).toBe(31);
+    expect(board.placements.get(`0,${ANTENNA_ROW}`)?.moduleId).toBe('block_019');
+    expect(q?.kind).toBe('Q');
+  });
+
+  it('puts C10 across the whole of L1, through XT5 and XT6', () => {
+    expect(ant.tuned).toEqual([FIXED_NETS.C10_A, FIXED_NETS.C10_B]);
+  });
+
+  it('feeds the top of L1 from the supply through 12 кОм and takes the output from it', () => {
+    expect(joins('R', 12_000, 'VCC', FIXED_NETS.C10_A)).toBe(true);
+    expect(joins('C', 0.01e-6, FIXED_NETS.C10_A, 'AMP_IN')).toBe(true);
+  });
+
+  it('puts the collector on the tap of L1 and L2 in the emitter', () => {
+    expect(l1Start?.kind).toBe('L');
+    expect(l1End?.kind).toBe('L');
+    if (q?.kind !== 'Q' || l1Start?.kind !== 'L' || l1End?.kind !== 'L') return;
+    expect(l1Start.b).toBe(q.collector);
+    expect(l1End.a).toBe(q.collector);
+    expect(ant.coupling[1]).toBe(q.emitter);
+  });
+
+  it('biases the base from the supply through 680 кОм, 1 МОм and 680 кОм', () => {
+    expect(q?.kind).toBe('Q');
+    if (q?.kind !== 'Q') return;
+    const r = netlist.elements.filter((e) => e.kind === 'R' && e.name.includes('@'));
+    const between = (ohms: number, a: string) =>
+      r.find((e) => e.kind === 'R' && e.ohms === ohms && (e.a === a || e.b === a));
+    const top = between(680_000, 'VCC');
+    expect(top?.kind).toBe('R');
+    if (top?.kind !== 'R') return;
+    const y = top.a === 'VCC' ? top.b : top.a;
+    const mid = between(1_000_000, y);
+    expect(mid?.kind).toBe('R');
+    if (mid?.kind !== 'R') return;
+    const z = mid.a === y ? mid.b : mid.a;
+    expect(joins('R', 680_000, z, q.base)).toBe(true);
+  });
+
+  it('couples the base to the input through 680 пФ', () => {
+    expect(q?.kind).toBe('Q');
+    if (q?.kind !== 'Q') return;
+    expect(joins('C', 680e-12, q.base, input)).toBe(true);
+  });
+
+  it('decouples the supply with 20 мкФ, + on the supply', () => {
+    const el = netlist.elements.find(
+      (e) => e.kind === 'C' && e.farads === 20e-6 && e.name.startsWith('block_014'),
+    );
+    expect(el?.kind === 'C' && el.a === 'VCC' && el.b === netlist.ground).toBe(true);
+  });
+
+  it('brings the probe wires to the left contacts of rows 1 and 4', () => {
+    expect(clip(0)).toBe(netlist.ground);
+    expect(clip(3)).toBe(input);
   });
 });
 

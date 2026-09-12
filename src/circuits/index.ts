@@ -10,6 +10,8 @@
  *               and stays silent. See DEVPLAN, "Known defect: astable start-up". The circuits
  *               are transcribed correctly and test/circuits.test.ts checks their netlists
  *               against the schematics, so they come alive when the solver is fixed.
+ *               Radio-frequency oscillators such as device 26 cannot run at an audio step at
+ *               all; like the radio block, they would need a behavioural model.
  */
 
 import type { Board, Lead } from '../model/board.js';
@@ -160,7 +162,78 @@ export const DEVICE_6: Circuit = {
   expect: { gatedByButton: true, minRms: 0.15, freqHz: [1200, 3200] },
 };
 
-export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6];
+/**
+ * Device 26 «Электронная няня», page 35 of the manual: the factory mounting drawing, transcribed
+ * cell by cell like device 6. All 30 cells are filled and the antenna sits in its slot.
+ *
+ * A КТ315Б oscillates on the antenna: 12 кОм from the supply feeds L1, whose tap is the
+ * collector, with C10 across the whole winding through XT5 and XT6; L2 is in the emitter. The
+ * base is biased from the supply through 680 кОм, 1 МОм and 680 кОм, and 680 пФ runs from the
+ * base to the input. 0,01 мкФ takes the signal from the top of L1 to XT4, and 20 мкФ decouples
+ * the supply.
+ *
+ * The two supplied wires are the moisture probe: one clips to the left contact of row 4, which
+ * is the input node, and one to the left contact of row 1, which reaches ground through the top
+ * strip and the electrolytic in the top-right cell. Their free ends lie loose under the baby, so
+ * they are not leads between two contacts and are left out here. The oscillator runs at radio
+ * frequency, which an audio-rate solver cannot integrate, hence `simulates: false`.
+ */
+export const DEVICE_26: Circuit = {
+  id: 'device26',
+  title: 'Электронная няня (устройство 26)',
+  description:
+    'Заводская схема со страницы 35 руководства. Транзистор с магнитной антенной работает ' +
+    'как генератор. Два провода, прижатые к левым контактам первого и четвёртого рядов, ' +
+    'служат датчиком влаги: их свободные концы кладут под пелёнку, и когда между ними ' +
+    'появляется влага, раздаётся предупреждающий сигнал; его слышно и на приёмнике ' +
+    'длинных волн рядом. Раскладка повторяет заводской рисунок: заняты все 30 гнёзд. ' +
+    'Провода-датчик эмулятор пока не моделирует, а генератор работает на радиочастоте.',
+  source: 'manual page 35, device 26: factory mounting drawing, transcribed cell by cell',
+  kitLegal: true,
+  simulates: false,
+  volume: 0.6,
+  placements: [
+    { col: 0, row: 0, moduleId: 'block_024', rotation: 2 }, // «Тройник»: N on the top strip
+    { col: 1, row: 0, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 2, row: 0, moduleId: 'block_009', rotation: 3 }, // 0,01 мкФ, spare
+    { col: 3, row: 0, moduleId: 'block_015', rotation: 3 }, // 20 мкФ, spare
+    { col: 4, row: 0, moduleId: 'block_022', rotation: 0 }, // «Щель»
+    { col: 5, row: 0, moduleId: 'block_014', rotation: 3 }, // 20 мкФ decoupling: − on XT1
+
+    { col: 0, row: 1, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 1, row: 1, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 2, row: 1, moduleId: 'block_024', rotation: 1 }, // «Тройник»
+    { col: 3, row: 1, moduleId: 'block_024', rotation: 2 }, // «Тройник»
+    { col: 4, row: 1, moduleId: 'block_001', rotation: 3 }, // 2,2 кОм, spare
+    { col: 5, row: 1, moduleId: 'block_023', rotation: 1 }, // «Линия»
+
+    { col: 0, row: 2, moduleId: 'block_001', rotation: 0 }, // 2,2 кОм, spare
+    { col: 1, row: 2, moduleId: 'block_007', rotation: 3 }, // 1 МОм, spare
+    { col: 2, row: 2, moduleId: 'block_008', rotation: 2 }, // 1 МОм base bias
+    { col: 3, row: 2, moduleId: 'block_005', rotation: 1 }, // 680 кОм base bias, from supply
+    { col: 4, row: 2, moduleId: 'block_002', rotation: 0 }, // 12 кОм collector feed
+    { col: 5, row: 2, moduleId: 'block_021', rotation: 0 }, // «Крест»: E on XT3
+
+    { col: 0, row: 3, moduleId: 'block_023', rotation: 0 }, // «Линия»: W is the input clip point
+    { col: 1, row: 3, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 2, row: 3, moduleId: 'block_020', rotation: 1 }, // «Угол»
+    { col: 3, row: 3, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 4, row: 3, moduleId: 'block_024', rotation: 3 }, // «Тройник»
+    { col: 5, row: 3, moduleId: 'block_012', rotation: 2 }, // 0,01 мкФ output: E on XT4
+
+    { col: 0, row: 4, moduleId: 'block_013', rotation: 1 }, // 0,01 мкФ, spare
+    { col: 1, row: 4, moduleId: 'block_006', rotation: 2 }, // 680 кОм base bias, to the base
+    { col: 2, row: 4, moduleId: 'block_010', rotation: 0 }, // 680 пФ base to input
+    { col: 3, row: 4, moduleId: 'block_017', rotation: 0 }, // КТ315Б
+    { col: 4, row: 4, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 5, row: 4, moduleId: 'block_022', rotation: 1 }, // «Щель»: E on XT5
+
+    { col: 0, row: ANTENNA_ROW, moduleId: 'block_019' }, // антенна: E end on XT6
+  ],
+  expect: {},
+};
+
+export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, DEVICE_26];
 
 export function loadCircuit(board: Board, circuit: Circuit): void {
   board.clear();
