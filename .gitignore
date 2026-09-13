@@ -5,7 +5,7 @@ dist/
 research/
 *.local
 
-# Reference photographs used for the reverse engineering. Third-party images, kept local.
+# Reference material under assets/ stays local unless listed below.
 assets/*
 
 # The blocks registry (crops + structured data) is our own reverse-engineering work, not
@@ -14,3 +14,11 @@ assets/*
 
 # The Приложение 3 scans are the source the built-in circuitry is transcribed from (SPEC §5).
 !assets/core/
+
+# Reference material the README shows as part of the reverse engineering: the manual's symbol
+# legend (Приложение 1), device 6's mounting drawing and schematic, and the square-on photograph
+# of a grey unit the panel geometry and palette are measured from.
+!assets/circuitry-legend/
+!assets/multivibrator-chart.png
+!assets/multivibrator-schematics-raw.png
+!assets/the-original-econ-01-body.jpg

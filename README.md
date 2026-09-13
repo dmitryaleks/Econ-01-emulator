@@ -80,8 +80,8 @@ cubes connect only where their faces touch:
 
 The manual insists that a module must sit *«не только на своем месте, но и в таком положении,
 в каком он изображён на монтажном рисунке»*, not only in its place but turned as drawn. The
-emulator ships three skins: the grey and black production cases, colour-sampled from photographs,
-and a flat schematic view.
+emulator ships three skins: the grey and black production cases, colour-sampled from photographs
+([how](#the-evidence-on-the-bench)), and a flat schematic view.
 
 ---
 
@@ -227,6 +227,72 @@ scanned 1986 manual, a handful of photographs, and a person who could look at a 
 blotch and tell a marker ring from a speck of scan dust. The work ran as a loop between a model
 that does the tedious, checkable parts and a human who decides what the evidence says.
 
+### The evidence on the bench
+
+**A device page** gives two drawings: the schematic, and a mounting drawing of the whole field
+showing which cube goes where and which way it faces. Device 6 «Мультивибратор» (page 15) was the
+first one traced:
+
+<table>
+<tr>
+<td width="42%" valign="top"><img src="assets/multivibrator-chart.png" alt="Device 6 mounting drawing from the manual" width="100%"></td>
+<td width="58%" valign="top"><img src="assets/multivibrator-schematics-raw.png" alt="Device 6 schematic from the manual" width="100%"></td>
+</tr>
+<tr>
+<td valign="top"><sub><code>assets/multivibrator-chart.png</code>: the mounting drawing. Every cube and its turn has to be read from this.</sub></td>
+<td valign="top"><sub><code>assets/multivibrator-schematics-raw.png</code>: the schematic it must reproduce. The dashed box «А» is the kit's built-in amplifier, seen only through its terminals XT1, XT3 and XT4.</sub></td>
+</tr>
+</table>
+
+**Приложение 3: inside the dashed box.** Every one of the 30 schematics hides the amplifier behind
+that box «А». The appendix opens it:
+
+<p align="center"><img src="assets/core/core-schematics.png" alt="Приложение 3: the kit's built-in amplifier, battery, volume control and tuning capacitor" width="100%"></p>
+
+[`assets/core/core-schematics.png`](assets/core/core-schematics.png), with its parts list in
+[`assets/core/core-elements-registry.png`](assets/core/core-elements-registry.png), is transcribed
+transistor by transistor into `addBuiltIn` in [`src/netlist/build.ts`](src/netlist/build.ts):
+
+- **the power path:** GB1 and the switch ganged with the volume control R2, then R3 with C4 and C2
+  feeding XT3;
+- **the input:** XT4 → R1 → R2's wiper, with C1 and C3 shunting radio frequencies;
+- **the transistors:** VT1 and VT2 (КТ315Б), the МП26А driver VT3, and the МП38/МП42Б
+  complementary pair VT4/VT5;
+- **the output:** C8 into the 0,5ГДШ-2 loudspeaker on XT7, and C10 across XT5–XT6.
+
+Nothing about the amplifier is scripted. Three numbers nobody fitted check the transcription:
+
+- The output midpoint sits at **4.6 V**, half the 8.7 V rail, as a single-supply push-pull stage should.
+- It idles at **6.5 mA**.
+- Driven to clipping it draws **~130 mA**, against the manual's rated maximum of 120 mA.
+
+This page also fixes the terminal names every device page uses.
+
+**Приложение 1: the symbol legend.** The manual's own key to its drawings, and the reference for
+reading module icons: which end of a diode is the anode, and which transistor leg is Б (base),
+К (collector) and Э (emitter).
+
+<details>
+<summary>▶ Show the legend (<code>assets/circuitry-legend/</code>, three scans)</summary>
+<br>
+<img src="assets/circuitry-legend/circuitry-catalogue-001.png" alt="Symbol legend: resistor, variable resistor, capacitor, electrolytic, variable capacitor" width="100%">
+<img src="assets/circuitry-legend/circuitry-catalogue-002.png" alt="Symbol legend: ferrite antenna" width="100%">
+<img src="assets/circuitry-legend/circuitry-catalogue-003.png" alt="Symbol legend: diode, transistor, loudspeaker, switch, push button, battery cell" width="100%">
+</details>
+
+**One square-on photograph** of a grey-cased unit
+([`assets/the-original-econ-01-body.jpg`](assets/the-original-econ-01-body.jpg)):
+
+- **Orientation:** the case is 1.09 times taller than wide, which settles which of the manual's
+  "206 × 190 mm" is height.
+- **Geometry:** the field origin, the 16.2 mm cell pitch and the size of the antenna slot.
+- **Mouldings:** the dimpled carry rail, the boxed badge and the hex speaker grille.
+- **The palette:** every colour of the grey skin is sampled from it.
+
+<p align="center"><img src="docs/readme/photo_to_skin.png" alt="The reference photograph next to the emulator's grey skin" width="100%"></p>
+
+### The loop
+
 ```mermaid
 flowchart LR
     classDef src fill:#1a0b2e,stroke:#ff2e88,color:#ffd6ec
@@ -236,15 +302,18 @@ flowchart LR
 
     M[/"Manual DjVu<br/>53 pages"/]:::src --> X["ddjvu → page PNGs<br/>bookmap fixes page order"]:::ai
     P[/"Orthogonal photo<br/>of a grey unit"/]:::src --> G["Panel geometry in mm,<br/>colour palette"]:::ai
+    A3[/"Приложение 3<br/>amplifier schematic"/]:::src --> AMP["Built-in amplifier,<br/>transistor by transistor"]:::ai
     X --> T["Parts table crops<br/>Pillow segmentation, no OCR"]:::ai
-    T --> R["Confirm each icon at zoom:<br/>symbol, ring, wire stubs"]:::human
+    T --> R["Pin each icon at zoom:<br/>symbol, ring, wire stubs"]:::human
     R --> B[("block_spec.json<br/>26 confirmed pinouts")]:::gate
     X --> C["cells.py tiles a mounting<br/>drawing into 30 cells"]:::ai
     C --> L["Transcribe: module id +<br/>rotation per cell"]:::ai
     L --> N["Build netlist by<br/>contact alone (union-find)"]:::ai
     B --> N
+    AMP --> N
     N --> S{"matchSchematic:<br/>every part found,<br/>no spare bridges nodes?"}:::gate
     S -- no --> L
+    S -- "a pinout can't be right" --> R
     S -- yes --> V{"Simulate at 24 / 48 / 96 kHz:<br/>does the pitch hold still?"}:::gate
     V -- no --> F["Fix the solver<br/>or the model"]:::ai
     F --> V
@@ -254,14 +323,89 @@ flowchart LR
 
 <p align="center"><img src="docs/readme/re_strip.png" alt="Manual mounting drawing tiled into cells next to the emulator's transcription" width="100%"></p>
 
+### Pinning the module registry
+
+[`assets/blocks/block_spec.json`](assets/blocks/block_spec.json) is the single source of truth
+for what each of the 26 module types is and how it is wired; `src/model/catalogue.ts`, the panel
+symbols and the netlist are all built from it. Its pinouts could not simply be read off the page.
+
+- **The icons are tiny.** Each module is a ~150 px icon in the manual's parts table (Приложение 2),
+  printed small and scanned soft.
+- **The scan is botched in places.** The two diode arrows on the twin-diode module are ink
+  stars, the two transistors are near-identical smudges, and one capacitor sits under an ink blot.
+- **Guessing had already failed.** An earlier catalogue written from those guesses had one
+  transistor's collector and emitter swapped, and missed spare wires on many modules.
+
+So every pinout was pinned by a person:
+
+<p align="center"><img src="docs/readme/pinning.png" alt="Pinning block_016 and block_017: the scan, the manual's legend, the human's ruling, and the pinned wiring" width="100%"></p>
+
+**How the registry was solidified:**
+
+1. **Crop and transcribe.** Pillow finds each row of the parts table and crops the icon and its
+   description. No OCR engine was used: the model reads the Russian text from enlarged crops and
+   records values, series, tolerances and kit counts.
+2. **The human pins the hard ones.** Pinouts are given in face terms, in the icon's own
+   orientation. For block_016: *"West-to-South edge has a diode with arrow pointing West-to-South;
+   South-to-East has a diode with the arrow pointing South-to-East."* Blocks 003, 016, 017 and 018
+   went in this way.
+3. **The model asks about the rest.** The human's instruction was *"Ask me to disambiguate
+   pinouts and other properties of blocks where you are unsure"*.
+   - The model enlarged every remaining icon 3–5× with N/E/S/W labels and wrote down its as-drawn
+     reading.
+   - It asked about four modules per round. The as-drawn reading was the first option, the old
+     catalogue's version the second, and each question described what the icon shows.
+   - Six rounds covered the kit.
+4. **Recorded as confirmed.** Each module gets `status: "confirmed"` and `source: "user"`, one
+   connection per element, with polarity as `from` → `to` (anode → cathode, + → −). Its `notes`
+   keep what the icon shows, how it differs from the old catalogue, and any scan damage.
+5. **The circuits audit the registry.** A pinout is only as good as the layouts it explains. When
+   device 24's mounting drawing matched its schematic everywhere except at the кнопка, the model
+   stopped, laid out both readings and asked, and the registry changed.
+6. **The recipe is kept.** [`how_to_process_raw_blocks.md`](assets/blocks/how_to_process_raw_blocks.md)
+   records every step, so the next table goes through the same process.
+
+**A pin in the history.** block_016 was confirmed twice, a round apart. The enlarged icon showed
+a line the first ruling had not mentioned, so the model asked about it instead of guessing. The
+diff between `17004e1` and `c95ca2b`:
+
+```diff
+ "pinout": {
+   "status": "confirmed",
+   "connections": [
+     { "from": "W", "to": "S", "via": "diode", "symmetric": false },
+     { "from": "S", "to": "E", "via": "diode", "symmetric": false },
++    { "from": "W", "to": "N", "via": "wire" }
+   ],
+   "source": "user"
+ },
+-"notes": "… The icon also has a line from the W side up to the top rim that the confirmed pinout
+-         doesn't include; it may be a plain W–N wire like block_003's, still to check."
++"notes": "… a plain W–N wire makes the first anode reachable on both W and N.
++         catalogue.ts:dd9b has the two diodes but not the W–N wire."
+```
+
+**Rulings that needed a human:**
+
+| Module or question | What the scan showed | What was ruled |
+|---|---|---|
+| block_016, two Д9Б diodes | two star-shaped blots, and a line from N down to W | diodes W→S and S→E; *"Yes, plain wire W–N"* |
+| block_017 and block_018, КТ315Б | two near-identical smudged transistors | base W, collector N, emitter S on both. The extra wire is N–E on 017 and S–E on 018; the old catalogue had 018's collector and emitter swapped |
+| block_010, 680 pF | crossing wires, no capacitor plates anywhere, an ink blot over the N–E chord | *"Crossing wires + cap N–E"*: the capacitor sits under the blot |
+| block_022 «Щель» | two chords that don't meet | *"Two corner links"*. The spec and catalogue had it as a blank |
+| block_019, the antenna bar | leads along the top of a six-cell bar | typed in by the human: *"The element L1 touches pin East and touches North pins number two, five, six. Internal element L2 touches just North pins three and four"*. The model read the winding order back, and it was confirmed |
+| rings on 003, 004, 006, 012 | a small ring, on 003 hanging from a stem | *"Not sure"*. Recorded as a marker; comparing the table showed each ring tells a module from one wired the same with a different value (68 kΩ vs 2.2 kΩ, 0.01 µF vs 3300 pF) |
+| block_026, the кнопка | a cap with stubs at W, E and S | first *"Press joins W, E and S"*. After device 24's layout contradicted it: *"W–E always joined, S switched"* |
+| XT1–XT7, the panel terminals | nothing on any drawing | *"You'll need to iterate over multiple schematics to reverse engineer those panel terminal positions. Look at the Device number 26 for example."* Answered by tracing layouts, not by asking |
+
 **Who did what:**
 
 | The human (the kit's owner) | The model (Claude Code) |
 |---|---|
 | Chose the goals, the order of devices, and when to commit | Extracted the manual, cropped and tiled every table and drawing |
-| Exported the parts-table scans; confirmed every module's wiring at high zoom (all 26 pinouts) | Transcribed 30-cell layouts and wrote the netlist builder, schematic matcher and tests |
+| Exported the parts-table scans; dictated the hardest pinouts and settled six rounds of pinout questions | Transcribed 30-cell layouts and wrote the netlist builder, schematic matcher and tests |
 | Played the result and reported what was off: a scope that moved with no sound behind it, click sounds that came out muffled and overdriven | Diagnosed and fixed it: a worklet running 8× slower than real time, an overdriven click synth |
-| Answered 13 clarifying questions and settled design calls | Wrote the solver, and documented dead ends in `DEVPLAN.md` and `UNSOLVED.md` |
+| Answered clarifying questions and settled design calls | Wrote the solver, and documented dead ends in `DEVPLAN.md` and `UNSOLVED.md` |
 
 **Rules that kept it honest:**
 
@@ -269,10 +413,8 @@ flowchart LR
   was probably meant". The schematic comparison is a search that must place every printed part
   on a distinct module and let no spare module bridge two nodes. Spares are expected: the factory
   fills all 30 cells to fit what is in the box.
-- **Evidence beats the first reading.** The кнопка was first recorded with all three contacts
-  apart until pressed. Device 24's layout only makes sense if W–E is a plain wire, so the
-  registry was corrected, and that correction then explained a cryptic *«развернуть на 180°»* on
-  device 27's page.
+- **Evidence beats the first reading.** The кнопка correction above then explained a cryptic
+  *«развернуть на 180°»* on device 27's page.
 - **The panel map came from the drawings.** Tracing devices 6 and 26 showed the terminals
   XT1–XT7 are the right-edge contacts, that the top edge is one strip, and that the left edge is
   only clip points. The first model had them on the wrong side.
@@ -456,8 +598,13 @@ src/
   audio/      engine.ts (rate benchmark, pace) · solver-worklet.ts · clicks.ts (synthesized clicks)
   ui/         panel-canvas.ts · probe.ts (scope) · skins/ (grey, black, schematic)
   circuits/   the presets, one commented cell per line
-assets/blocks/   block_spec.json: 26 module types, confirmed pinouts, icon crops, processing recipe
-assets/core/     Приложение 3 scans the built-in amplifier is transcribed from
+assets/
+  blocks/             block_spec.json: 26 module types, confirmed pinouts, icon crops, recipe
+  core/               Приложение 3: the built-in amplifier's schematic and parts list
+  circuitry-legend/   Приложение 1: the manual's symbol legend
+  multivibrator-*.png device 6's mounting drawing and schematic, the first layout traced
+  the-original-econ-01-body.jpg   the square-on photograph the panel is measured from
+docs/readme/     this README's images, GIFs and sound samples
 test/            solver, netlist, schematic matcher, preset behaviour and timing
 SPEC.md          the reverse-engineered device, every claim tagged [C] [I] [G]
 DEVPLAN.md       phases, decisions, what was tried and why it failed
@@ -467,9 +614,10 @@ UNSOLVED.md      what does not work yet
 **Sources.** The factory manual «Электронный конструктор ЭКОН-01. Руководство по эксплуатации»
 (ВНИИ «Электронстандарт», 1986), scanned at [retropc.org](http://retropc.org/Elektronnyj_konstruktor_Ekon-01_s_59.html);
 photographs from retropc.org and [sovtech.su](https://www.sovtech.su/2024/11/30/); history from
-rw6ase.narod.ru, rdwiki.com and radionic.ru. Third-party scans and photographs stay out of the
-repository. The exceptions are the parts-table and Приложение 3 crops the models are built from,
-and one mounting-drawing crop in this README.
+rw6ase.narod.ru, rdwiki.com and radionic.ru. The full manual and most photographs stay out of the
+repository. What is kept under `assets/` is the reference material the models are built from and
+this README shows: crops of the parts table, Приложения 1 and 3, and device 6's page, plus one
+photograph of a grey unit, which carries the watermark of the site it was published on.
 
 ```text
  ──────────────────────────────────────────────────────────────────────────────────
