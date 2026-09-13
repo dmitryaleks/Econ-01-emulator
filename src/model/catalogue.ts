@@ -39,6 +39,7 @@ interface Block {
   width_cells: number;
   rotatable?: boolean;
   rus_orig_desc: string;
+  icon_marker?: { shape: 'ring'; at: [number, number]; stem_to?: [number, number] };
   schematic_prop: {
     kind: string;
     value?: number;
@@ -214,6 +215,10 @@ function moduleOf(block: Block): ModuleDef {
   };
   if (width > 1) def.sites = faces.map((f) => siteOf(f, width));
   if (block.rotatable === false) def.rotatable = false;
+  if (block.icon_marker) {
+    def.marker = { at: block.icon_marker.at };
+    if (block.icon_marker.stem_to) def.marker.stemTo = block.icon_marker.stem_to;
+  }
   return def;
 }
 

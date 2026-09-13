@@ -201,7 +201,10 @@ Notes
   and МП42Б belong to the built-in amplifier, not to the modules.
 - **[C]** «Мостик», and the crossing wires in `block_010`, are what make non-planar circuits
   possible on a 2-D grid.
-- **[C]** A small ring appears on the icons of blocks 003, 004, 006 and 012; its meaning is unknown.
+- **[C]** A small ring on the icons of blocks 003, 004, 006 and 012 tells each apart from a module
+  drawn with exactly the same wiring but a different value: 003 (68 kΩ) from 001 (2,2 kΩ), 004
+  (68 kΩ) from 007 (1 MΩ), 006 (680 kΩ) from 002 (12 kΩ), and 012 (0,01 µF) from 011 (3300 pF).
+  The registry records each ring's position and the emulator draws it on the cap.
 - **[G]** Д9Б model: `Is ≈ 1e-6 A`, `n ≈ 1.4`, forward drop ≈ 0.25 V.
 - **[G]** КТ315Б model: `βF ≈ 80`, `Is ≈ 1e-14 A`, `Vaf ≈ 100 V`.
 
@@ -412,4 +415,5 @@ controls that vary a source or a resistance in the netlist.
    N3–N4, apart from L1 (§4).
 5. ~~The interconnections of the built-in amplifier.~~ Resolved from the clean scan of
    Приложение 3; the amplifier is now simulated part by part (§5.2, §5.3).
-6. What the small ring on four module icons means (§4).
+6. ~~What the small ring on four module icons means.~~ Resolved: it tells look-alike modules of
+   different values apart (§4).

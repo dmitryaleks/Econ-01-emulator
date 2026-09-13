@@ -162,6 +162,11 @@ export interface ModuleDef {
   sites?: ContactSite[];
   /** False for modules that only fit one way, i.e. the antenna bar. */
   rotatable?: boolean;
+  /**
+   * The small ring printed on the icon to tell this module from another drawn with the same
+   * wiring but a different value. In the icon's circle at rotation 0: radius 1, y downward.
+   */
+  marker?: { at: [number, number]; stemTo?: [number, number] };
 }
 
 /** Contact sites of a module, filling in the default for 1×1 cubes. */

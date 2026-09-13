@@ -10,6 +10,33 @@ describe('catalogue', () => {
     expect(CUBE_COUNT).toBe(36);
   });
 
+  it('rings exactly one of any two modules drawn with the same wiring but different values', () => {
+    const drawing = (def: (typeof CATALOGUE)[number]) =>
+      def.elements
+        .map((e) => {
+          if (e.kind === 'bjt') return `bjt:${e.base}${e.collector}${e.emitter}`;
+          if (e.kind === 'diode') return `diode:${e.anode}>${e.cathode}`;
+          if (e.kind === 'emf') return '';
+          const ends = [e.a, e.b];
+          return `${e.kind}:${e.kind === 'electrolytic' ? ends.join('>') : ends.sort().join('-')}`;
+        })
+        .sort()
+        .join(' ');
+    const value = (def: (typeof CATALOGUE)[number]) =>
+      JSON.stringify(def.elements.map((e) => ('ohms' in e ? e.ohms : 'farads' in e ? e.farads : '')));
+
+    let pairs = 0;
+    for (const a of CATALOGUE) {
+      for (const b of CATALOGUE) {
+        if (a.id >= b.id || drawing(a) !== drawing(b) || value(a) === value(b)) continue;
+        pairs++;
+        expect(Boolean(a.marker) !== Boolean(b.marker), `${a.id} vs ${b.id}`).toBe(true);
+      }
+    }
+    // 2,2/68 кОм, 68 кОм/1 МОм, 12/680 кОм and 3300 пФ/0,01 мкФ.
+    expect(pairs).toBe(4);
+  });
+
   it('has a unique id per entry', () => {
     const ids = CATALOGUE.map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length);

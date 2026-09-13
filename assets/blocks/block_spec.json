@@ -1,5 +1,6 @@
 {
   "face_convention": "N/E/S/W are the cube's side contacts with the module turned exactly as drawn in its raw_orig_icon (rotation 0). A module wider than one cell has one contact position per cell along its long edges, numbered from 1 at the left end (N1…N6, S1…S6); W and E are its two ends.",
+  "marker_convention": "icon_marker is the small ring printed on a module's icon to tell it apart from another module drawn with exactly the same wiring but a different value. Positions are in the icon's own circle, turned as drawn: centre (0, 0), radius 1, x to the right (E), y downward (S). stem_to, when present, is where a short stem joins the ring to the part's body.",
   "placement_convention": "Every module is one cell tall; width_cells gives its width. A module can be turned in quarter steps and placed in any field cell unless it sets rotatable: false or a slot (the antenna bar only fits the antenna slot, as drawn).",
   "connection_convention": "Each entry in pinout.connections is either a two-terminal element or wire, {from, to, via}, or a multi-terminal element, {via, terminals: {terminal name: face}} (e.g. a bjt's base/collector/emitter). A polarized two-terminal element (symmetric: false) conducts from → to: a diode's anode is 'from' and its cathode 'to'; an electrolytic's + terminal is 'from'. A button's terminals are all apart when released and all joined while it is held. An inductor section may also give its winding name and turns.",
   "elements": [
@@ -77,6 +78,7 @@
       "tolerance_pct": 10
     },
     "raw_orig_icon": "block_003.png",
+    "icon_marker": { "shape": "ring", "at": [-0.25, 0.48], "stem_to": [-0.25, 0.2] },
     "num_in_kit": 1,
     "pinout": {
       "status": "confirmed",
@@ -87,7 +89,7 @@
       ],
       "source": "user"
     },
-    "notes": "Electrically W is one node and N/E/S are one node, with the resistor between them, so it can be used straight through (W–E) or as a corner (W–N, W–S). The small ring on a stem under the resistor body is unexplained; blocks 004, 006 and 012 have one too, so it isn't what tells the two 68 кОм modules apart; its meaning is still unknown. The kit's other 68 кОм module is block_004, drawn differently, so num_in_kit = 1."
+    "notes": "Electrically W is one node and N/E/S are one node, with the resistor between them, so it can be used straight through (W–E) or as a corner (W–N, W–S). The small ring on a stem under the resistor body marks it apart from block_001 (2,2 кОм), which is drawn with exactly the same wiring. The kit's other 68 кОм module is block_004, drawn differently, so num_in_kit = 1."
   },
   {
     "name": "block_004",
@@ -106,6 +108,7 @@
       "tolerance_pct": 10
     },
     "raw_orig_icon": "block_004.png",
+    "icon_marker": { "shape": "ring", "at": [0.28, 0.23] },
     "num_in_kit": 1,
     "pinout": {
       "status": "confirmed",
@@ -115,7 +118,7 @@
       ],
       "source": "user"
     },
-    "notes": "OCR'd from blocks_004-008_raw_table.png, row 1. Second 68 кОм module (block_003 is the first). Confirmed as drawn: resistor N–E, plus an independent plain wire W–S that doesn't touch it; the small ring's meaning is unknown. catalogue.ts:r68k-a has the corner resistor but not the W–S wire."
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 1. Second 68 кОм module (block_003 is the first). Confirmed as drawn: resistor N–E, plus an independent plain wire W–S that doesn't touch it. The small ring marks it apart from block_007 (1 МОм), drawn with the same wiring. catalogue.ts:r68k-a has the corner resistor but not the W–S wire."
   },
   {
     "name": "block_005",
@@ -163,6 +166,7 @@
       "tolerance_pct": 10
     },
     "raw_orig_icon": "block_006.png",
+    "icon_marker": { "shape": "ring", "at": [-0.17, 0.4] },
     "num_in_kit": 1,
     "pinout": {
       "status": "confirmed",
@@ -172,7 +176,7 @@
       ],
       "source": "user"
     },
-    "notes": "OCR'd from blocks_004-008_raw_table.png, row 3. Second 680 кОм module. Confirmed as drawn, the same shape as block_002: a plain wire joins W and E, and the resistor runs from that node to S; the small ring's meaning is unknown. catalogue.ts:r680k-a has a plain corner resistor with no W–E wire."
+    "notes": "OCR'd from blocks_004-008_raw_table.png, row 3. Second 680 кОм module. Confirmed as drawn, the same shape as block_002: a plain wire joins W and E, and the resistor runs from that node to S. The small ring marks it apart from block_002 (12 кОм), drawn with the same wiring. catalogue.ts:r680k-a has a plain corner resistor with no W–E wire."
   },
   {
     "name": "block_007",
@@ -337,6 +341,7 @@
       "tolerance_pct_plus": 80
     },
     "raw_orig_icon": "block_012.png",
+    "icon_marker": { "shape": "ring", "at": [-0.44, 0.37] },
     "num_in_kit": 1,
     "pinout": {
       "status": "confirmed",
@@ -346,7 +351,7 @@
       ],
       "source": "user"
     },
-    "notes": "OCR'd from blocks_009-013_raw_table.png, row 4. Second 0,01 мкФ module. Confirmed as drawn, the same shape as block_011: capacitor W–E, plus a plain wire E–N; the small ring's meaning is unknown. Row order maps it to catalogue.ts:c10n-a, which wrongly has a plain corner capacitor."
+    "notes": "OCR'd from blocks_009-013_raw_table.png, row 4. Second 0,01 мкФ module. Confirmed as drawn, the same shape as block_011: capacitor W–E, plus a plain wire E–N. The small ring marks it apart from block_011 (3300 пФ), drawn with the same wiring. Row order maps it to catalogue.ts:c10n-a, which wrongly has a plain corner capacitor."
   },
   {
     "name": "block_013",

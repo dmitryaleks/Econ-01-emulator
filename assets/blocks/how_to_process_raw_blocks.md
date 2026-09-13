@@ -142,6 +142,11 @@ two different modules if their icons differ; give each its own block.
   ends (`face_convention`); an inductor section may carry `winding` and `turns`. Record the pinout
   as given, then enlarge the icon and note any line it leaves out. Mention the likely `catalogue.ts`
   id in `notes`: the table's row order follows the catalogue's.
+- `icon_marker`: if the icon carries a small ring, record it as
+  `{ "shape": "ring", "at": [x, y] }` in the icon's circle (radius 1, y downward), plus `stem_to`
+  if a stem joins it to the part. The ring tells the module apart from another drawn with the same
+  wiring but a different value, so check that exactly one of each such pair has it
+  (`marker_convention`; `test/netlist.test.ts` enforces it).
 - Validate: the JSON parses, every `raw_orig_icon` exists, `name` and `short_id` are unique, and
   every connection's faces are valid for the module's width.
 

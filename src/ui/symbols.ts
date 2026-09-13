@@ -84,6 +84,24 @@ export function drawModuleSymbol(c: Ctx, def: ModuleDef): void {
   if (straight.has('NS') && straight.has('WE') && !humpNS) dot(c, 0, 0);
 
   for (const el of parts) part(c, el);
+  if (def.marker) marker(c, def.marker);
+}
+
+/**
+ * The small ring that tells a module from another drawn with the same wiring but a different
+ * value, placed where its icon has it. Icon coordinates put the rim at 1, the leads at LEAD.
+ */
+function marker(c: Ctx, m: NonNullable<ModuleDef['marker']>): void {
+  const r = 0.13;
+  const [x, y] = [m.at[0] * LEAD, m.at[1] * LEAD];
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.stroke();
+  if (m.stemTo) {
+    const [sx, sy] = [m.stemTo[0] * LEAD, m.stemTo[1] * LEAD];
+    const d = Math.hypot(sx - x, sy - y) || 1;
+    line(c, x + ((sx - x) / d) * r, y + ((sy - y) / d) * r, sx, sy);
+  }
 }
 
 /** Union of faces joined by plain wire, as a face -> representative lookup. */
