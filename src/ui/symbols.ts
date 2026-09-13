@@ -178,13 +178,11 @@ function part(c: Ctx, el: Element): void {
       line(c, 0.09, -0.42, 0.09, 0.42);
       break;
     case 'electrolytic':
-      // Straight plate on the + side (a), curved plate on the − side.
+      // Two straight plates, as on a plain capacitor, with the + marked beside plate a.
       line(c, -end, 0, -0.09, 0);
-      line(c, 0.2, 0, end, 0);
+      line(c, 0.09, 0, end, 0);
       line(c, -0.09, -0.42, -0.09, 0.42);
-      c.beginPath();
-      c.arc(0.46, 0, 0.42, Math.PI * 0.72, Math.PI * 1.28);
-      c.stroke();
+      line(c, 0.09, -0.42, 0.09, 0.42);
       plus(c, -0.36, -0.36);
       break;
     case 'diode': {
