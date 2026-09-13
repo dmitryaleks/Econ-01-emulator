@@ -93,11 +93,13 @@ square-on reference photograph of. Colours above are sampled from the photograph
   rail a bevel band catches the light before the flat front face begins.
 - **Silkscreen** top left: a large «30» with «ЭЛЕКТРОННЫХ» / «УСТРОЙСТВ» set tight beside it on
   two lines, in a squarish Soviet techno grotesque.
-- **Badge** top right: «ЭКОН·01» with a raised middle dot.
+- **Badge** top right: «ЭКОН·01» with a raised middle dot, drawn on the same centre line as the
+  speaker, the volume window and the tuning knob.
 - **Speaker**: a recessed disc, r ≈ 29.8 mm, of **hex-packed holes** with **six moulded bridges**
   notching the rim at 60° intervals.
-- **Volume**: a small recessed window 29 × 11.5 mm with «ВКЛ.» and a left-pointing arrow above
-  it; a finely ribbed cream thumbwheel shows through, carrying a red index mark.
+- **Volume**: a slim recessed window 29 × 5.75 mm with «ВКЛ.» and a left-pointing arrow above
+  it (the emulator draws the legend without the arrow); a finely ribbed cream thumbwheel shows
+  through, carrying a red index mark.
 - **Tuning**: a cream **knurled knob**, r ≈ 16 mm, on the speaker's centre line below the volume
   window, with a raised inner platform, a dished
   centre, and an engraved dial arc with four index dots.

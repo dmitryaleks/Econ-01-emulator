@@ -779,26 +779,13 @@ export class PanelCanvas {
     const vw = this.px(v.w);
     const vh = this.px(v.h);
 
-    // «ВКЛ.» legend with its arrow, above the window.
+    // «ВКЛ.» legend above the window.
     c.save();
     c.fillStyle = s.textOnCase;
     c.font = `600 ${Math.max(5, this.px(2.7))}px "Arial Narrow", Arial, sans-serif`;
     c.textAlign = 'right';
     c.textBaseline = 'bottom';
     c.fillText('ВКЛ.', vx + vw - this.px(0.8), vy - this.px(0.5));
-    c.strokeStyle = s.textOnCase;
-    c.lineWidth = Math.max(0.8, this.px(0.32));
-    c.beginPath();
-    c.moveTo(vx + this.px(1.5), vy - this.px(2.2));
-    c.lineTo(vx + vw * 0.44, vy - this.px(2.2));
-    c.stroke();
-    c.beginPath();
-    c.moveTo(vx + vw * 0.52, vy - this.px(2.2));
-    c.lineTo(vx + vw * 0.4, vy - this.px(3.0));
-    c.lineTo(vx + vw * 0.4, vy - this.px(1.4));
-    c.closePath();
-    c.fillStyle = s.textOnCase;
-    c.fill();
     c.restore();
 
     c.save();

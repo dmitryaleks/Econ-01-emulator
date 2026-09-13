@@ -195,13 +195,13 @@ export function fieldRectMm(): { x: number; y: number; w: number; h: number } {
 }
 
 /**
- * Right-hand panel furniture, measured off the same photograph. The speaker, the volume window
- * and the tuning knob share one vertical centre line.
+ * Right-hand panel furniture, measured off the same photograph. The badge, the speaker, the
+ * volume window and the tuning knob share one vertical centre line.
  */
 export const CONTROLS_MM = {
   speaker: { cx: 152, cy: 119, r: 29.8 },
-  volume: { x: 137.5, y: 151.5, w: 29, h: 11.5 },
+  volume: { x: 137.5, y: 154.4, w: 29, h: 5.75 },
   tuning: { cx: 152, cy: 184, r: 16 },
-  badge: { x: 127, y: 68.5, w: 58, h: 12 },
+  badge: { x: 123, y: 68.5, w: 58, h: 12 },
   silk: { x: 10.5, y: 66 },
 };
