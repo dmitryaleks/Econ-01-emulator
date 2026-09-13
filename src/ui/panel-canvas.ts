@@ -44,6 +44,11 @@ export interface ViewState {
 
 const MARGIN = 6;
 
+/** Module body inset from its cell, the dome's radius, and the кнопка's push cap within it. */
+const BODY_INSET_MM = 0.12;
+const DOME_RATIO = 0.455;
+const CAP_RATIO = 0.74;
+
 export class PanelCanvas {
   private readonly ctx: CanvasRenderingContext2D;
   private scale = 1;
@@ -101,6 +106,17 @@ export class PanelCanvas {
       }
     }
     return null;
+  }
+
+  /** The cell whose кнопка push cap is under this point, if any. */
+  buttonCapAt(x: number, y: number, board: Board): Cell | null {
+    const hit = this.hitTest(x, y);
+    if (!hit || (hit.kind !== 'cell' && hit.kind !== 'contact')) return null;
+    if (board.defAt(hit.cell)?.shape !== 'button') return null;
+    const [mx, my] = this.toMm(x, y);
+    const r = cellRectMm(hit.cell);
+    const capMm = (Math.min(r.w, r.h) - BODY_INSET_MM * 2) * DOME_RATIO * CAP_RATIO;
+    return Math.hypot(mx - (r.x + r.w / 2), my - (r.y + r.h / 2)) <= capMm ? hit.cell : null;
   }
 
   render(board: Board, view: ViewState): void {
@@ -451,7 +467,10 @@ export class PanelCanvas {
       if (def.shape === 'antenna') {
         this.drawAntennaBody(r0.x, r0.y, wMm, r0.h, view.skin);
       } else {
-        this.drawCubeBody(r0.x, r0.y, r0.w, r0.h, view.skin, def.shape === 'button');
+        const isButton = def.shape === 'button';
+        this.drawCubeBody(
+          r0.x, r0.y, r0.w, r0.h, view.skin, isButton, isButton && board.controls.buttonDown,
+        );
       }
 
       this.drawSymbol(
@@ -475,10 +494,10 @@ export class PanelCanvas {
    * corners. That is what the photograph shows, and it is what makes the field read as cubes.
    */
   private drawCubeBody(
-    xMm: number, yMm: number, wMm: number, hMm: number, s: Skin, tall: boolean,
+    xMm: number, yMm: number, wMm: number, hMm: number, s: Skin, tall: boolean, pressed: boolean,
   ): void {
     const c = this.ctx;
-    const inset = 0.12;
+    const inset = BODY_INSET_MM;
     const [x, y] = this.toScreen(xMm + inset, yMm + inset);
     const w = this.px(wMm - inset * 2);
     const h = this.px(hMm - inset * 2);
@@ -493,18 +512,30 @@ export class PanelCanvas {
     c.stroke();
     c.restore();
 
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const r = Math.min(w, h) * DOME_RATIO;
+
     if (s.style.cap === 'flat') {
       c.save();
       roundRect(c, x + w * 0.06, y + h * 0.06, w * 0.88, h * 0.88, this.px(1.2));
       c.fillStyle = s.module.top;
       c.fill();
       c.restore();
+      if (tall) {
+        // A pale cap, so the symbol stays legible; it lightens while held.
+        c.save();
+        c.beginPath();
+        c.arc(cx, cy, r * CAP_RATIO, 0, Math.PI * 2);
+        c.fillStyle = pressed ? '#F2F0EA' : '#D9D6CD';
+        c.fill();
+        c.strokeStyle = s.module.shadow;
+        c.lineWidth = Math.max(0.6, this.px(0.22));
+        c.stroke();
+        c.restore();
+      }
       return;
     }
-
-    const cx = x + w / 2;
-    const cy = y + h / 2;
-    const r = Math.min(w, h) * 0.455;
     c.save();
     c.beginPath();
     c.arc(cx, cy, r, 0, Math.PI * 2);
@@ -525,17 +556,17 @@ export class PanelCanvas {
     c.restore();
 
     if (tall) {
-      // The кнопка stands proud with a black push cap.
+      // The кнопка stands proud with a black push cap, which reads lighter while held.
       c.save();
       c.beginPath();
-      c.arc(cx, cy, r * 0.74, 0, Math.PI * 2);
+      c.arc(cx, cy, r * CAP_RATIO, 0, Math.PI * 2);
       if (s.style.texture) {
         const g = c.createRadialGradient(cx - r * 0.3, cy - r * 0.32, r * 0.04, cx, cy, r * 0.8);
-        g.addColorStop(0, '#4C4C4C');
-        g.addColorStop(1, '#0D0D0D');
+        g.addColorStop(0, pressed ? '#7A7A7A' : '#4C4C4C');
+        g.addColorStop(1, pressed ? '#383838' : '#0D0D0D');
         c.fillStyle = g;
       } else {
-        c.fillStyle = '#2A2A2A';
+        c.fillStyle = pressed ? '#4A4A4A' : '#2A2A2A';
       }
       c.fill();
       c.restore();

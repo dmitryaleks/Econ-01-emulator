@@ -44,6 +44,8 @@ export class App {
   };
 
   private drag: { control: 'volume' | 'tuning'; startX: number; startValue: number } | null = null;
+  /** Last pointer position over the panel, for keyboard rotation. */
+  private pointer: { x: number; y: number } | null = null;
   private dirty = true;
 
   constructor(
@@ -172,19 +174,23 @@ export class App {
         };
         return;
       }
-      if (hit.kind === 'contact') {
+      // The кнопка's push cap presses it on a plain click; any other click on the cap acts on
+      // the module, never on the contact pads the cap overlaps.
+      const cap = this.panel.buttonCapAt(p.x, p.y, this.board);
+      const plain = ev.button === 0 && !ev.shiftKey && !ev.altKey;
+      if (cap && plain) {
+        this.board.controls.buttonDown = true;
+        this.rebuild();
+        return;
+      }
+      if (hit.kind === 'contact' && !cap) {
         this.toggleProbe(hit.cell, hit.edge);
         return;
       }
-      if (hit.kind === 'cell') {
-        const def = this.board.defAt(hit.cell);
-        if (!def) return;
+      if (hit.kind === 'cell' || hit.kind === 'contact') {
+        if (!this.board.defAt(hit.cell)) return;
         if (ev.button === 2 || ev.shiftKey) {
           this.board.rotate(hit.cell, ev.shiftKey && ev.button !== 2 ? -1 : 1);
-        } else if (def.shape === 'button') {
-          this.board.controls.buttonDown = true;
-          this.rebuild();
-          return;
         } else if (ev.altKey) {
           this.board.remove(hit.cell);
         } else {
@@ -196,6 +202,7 @@ export class App {
 
     canvas.addEventListener('pointermove', (ev) => {
       const p = local(ev);
+      this.pointer = p;
       if (this.view.dragging) {
         this.view.dragPos = p;
         const hit = this.panel.hitTest(p.x, p.y);
@@ -237,12 +244,23 @@ export class App {
     };
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
+    canvas.addEventListener('pointerleave', () => (this.pointer = null));
 
     window.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape' && this.view.dragging) {
         this.view.dragging = null;
         this.view.dragPos = null;
         this.dirty = true;
+        return;
+      }
+      // R rotates whatever module is under the pointer. By key position, so it works on a
+      // Russian layout too; Shift+R turns the other way.
+      if (ev.code === 'KeyR' && !ev.ctrlKey && !ev.metaKey && !ev.altKey && this.pointer) {
+        const hit = this.panel.hitTest(this.pointer.x, this.pointer.y);
+        if (!hit || (hit.kind !== 'cell' && hit.kind !== 'contact')) return;
+        if (!this.board.defAt(hit.cell)) return;
+        this.board.rotate(hit.cell, ev.shiftKey ? -1 : 1);
+        this.rebuild();
       }
     });
   }

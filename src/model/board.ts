@@ -103,7 +103,7 @@ export class Board {
     const p = this.placements.get(owner)!;
     const def = MODULE_BY_ID.get(p.moduleId);
     if (def?.rotatable === false) return;
-    p.rotation = (((p.rotation + by) % 4) + 4) as Rotation;
+    p.rotation = ((((p.rotation + by) % 4) + 4) % 4) as Rotation;
   }
 
   /** How many of this module type are still in the parts bin. */

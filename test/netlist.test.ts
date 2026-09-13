@@ -227,6 +227,16 @@ describe('board bookkeeping', () => {
     expect(board.remaining('block_023')).toBe(0);
   });
 
+  it('keeps rotation within a quarter-turn range however often a module is turned', () => {
+    const board = new Board();
+    board.place('block_026', { col: 0, row: 0 }, 3);
+    for (let i = 0; i < 6; i++) board.rotate({ col: 0, row: 0 }, 1);
+    expect(board.placements.get('0,0')?.rotation).toBe(1);
+    for (let i = 0; i < 7; i++) board.rotate({ col: 0, row: 0 }, -1);
+    expect(board.placements.get('0,0')?.rotation).toBe(2);
+    expect(board.serialise()).toContain('0,0,block_026,2');
+  });
+
   it('round-trips through the URL serialisation', () => {
     const board = new Board();
     board.place('block_003', { col: 1, row: 1 }, 2);
