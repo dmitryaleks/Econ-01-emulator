@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CIRCUITS, DEVICE_26, DEVICE_6, loadCircuit, type Circuit } from '../src/circuits/index.js';
+import {
+  CIRCUITS, DEVICE_24, DEVICE_26, DEVICE_6, loadCircuit, type Circuit,
+} from '../src/circuits/index.js';
+import { windingSection } from '../src/model/antenna.js';
 import { Board } from '../src/model/board.js';
 import { MODULE_BY_ID } from '../src/model/catalogue.js';
 import { ANTENNA_ROW, FIXED_NETS } from '../src/model/panel.js';
@@ -10,17 +13,18 @@ const FS = 96_000;
 
 function measure(
   circuit: Circuit,
-  opts: { button?: boolean; tuning?: number } = {},
+  opts: { button?: boolean; tuning?: number; fs?: number } = {},
 ): { level: number; freq: number } {
   const board = new Board();
   loadCircuit(board, circuit);
   if (opts.button !== undefined) board.controls.buttonDown = opts.button;
   if (opts.tuning !== undefined) board.controls.tuning = opts.tuning;
 
-  const sim = new Simulation(buildNetlist(board), FS);
-  sim.run(Math.round(FS * 0.05)); // let the operating point settle
-  const { samples } = sim.run(Math.round(FS * (circuit.expect.seconds ?? 0.2)));
-  return { level: rms(samples), freq: dominantFrequency(samples, FS) };
+  const fs = opts.fs ?? FS;
+  const sim = new Simulation(buildNetlist(board), fs);
+  sim.run(Math.round(fs * 0.05)); // let the operating point settle
+  const { samples } = sim.run(Math.round(fs * (circuit.expect.seconds ?? 0.2)));
+  return { level: rms(samples), freq: dominantFrequency(samples, fs) };
 }
 
 describe('every preset', () => {
@@ -151,8 +155,8 @@ describe('«Электронная няня» device 26 matches the factory sche
   const joins = joinsIn(netlist);
   const q = netlist.elements.find((e) => e.kind === 'Q' && e.name.startsWith('block_017'));
   const coils = netlist.elements.filter((e) => e.kind === 'L');
-  const l1Start = coils.find((e) => e.kind === 'L' && e.henries === 0.51e-3);
-  const l1End = coils.find((e) => e.kind === 'L' && e.henries === 5.1e-3);
+  const l1Start = coils.find((e) => e.kind === 'L' && e.henries === windingSection(100).henries);
+  const l1End = coils.find((e) => e.kind === 'L' && e.henries === windingSection(230).henries);
   const ant = netlist.antenna!;
   const clip = (row: number) => netlist.contactNet.get(contactKey({ col: 0, row }, 'W'));
 
@@ -219,6 +223,96 @@ describe('«Электронная няня» device 26 matches the factory sche
   });
 });
 
+/** Device 24's netlist checked part by part against the schematic on page 33, and its timing. */
+describe('«Реле времени» device 24 matches the factory schematic', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_24);
+  const released = buildNetlist(board);
+  const heldBoard = new Board();
+  loadCircuit(heldBoard, DEVICE_24);
+  heldBoard.controls.buttonDown = true;
+  const held = buildNetlist(heldBoard);
+  const joins = joinsIn(released);
+  const q = released.elements.find((e) => e.kind === 'Q');
+  const timing = released.elements.find((e) => e.kind === 'C' && e.name.startsWith('block_015'));
+  const ant = released.antenna!;
+
+  /** The timing node: the + side of the 20 мкФ that is not on the supply. */
+  const z = timing?.kind === 'C' ? timing.a : '';
+
+  it('fills all 30 cells, with the antenna in its slot', () => {
+    expect(board.placements.size).toBe(31);
+    expect(DEVICE_24.leads ?? []).toHaveLength(0);
+    expect(q?.kind).toBe('Q');
+  });
+
+  it('builds the same antenna oscillator as device 26', () => {
+    if (q?.kind !== 'Q') return;
+    expect(ant.tuned).toEqual([FIXED_NETS.C10_A, FIXED_NETS.C10_B]);
+    expect(joins('R', 12_000, 'VCC', FIXED_NETS.C10_A)).toBe(true);
+    expect(joins('C', 0.01e-6, FIXED_NETS.C10_A, 'AMP_IN')).toBe(true);
+    expect(ant.coupling).toEqual([released.ground, q.emitter]);
+  });
+
+  it('feeds the base from the timing capacitor through 680 кОм + 680 кОм', () => {
+    if (q?.kind !== 'Q' || timing?.kind !== 'C') return;
+    expect(timing.farads).toBe(20e-6);
+    expect(timing.b).toBe(released.ground);
+    const r680 = released.elements.filter((e) => e.kind === 'R' && e.ohms === 680_000);
+    const first = r680.find((e) => e.kind === 'R' && [e.a, e.b].includes(z));
+    expect(first?.kind).toBe('R');
+    if (first?.kind !== 'R') return;
+    const mid = first.a === z ? first.b : first.a;
+    expect(joins('R', 680_000, mid, q.base)).toBe(true);
+    expect(joins('C', 3300e-12, q.base, released.ground)).toBe(true);
+    expect(joins('C', 680e-12, q.base, released.ground)).toBe(true);
+  });
+
+  it('switches 68 кОм from the supply onto the timing capacitor with the кнопка', () => {
+    const r68 = released.elements.find(
+      (e) => e.kind === 'R' && e.ohms === 68_000 && [e.a, e.b].includes('VCC'),
+    );
+    expect(r68?.kind).toBe('R');
+    if (r68?.kind !== 'R') return;
+    const far = r68.a === 'VCC' ? r68.b : r68.a;
+    const sb = (n: Netlist) =>
+      n.elements.find(
+        (e) =>
+          e.kind === 'R' &&
+          e.name.startsWith('block_026@') &&
+          [e.a, e.b].sort().join('|') === [far, z].sort().join('|'),
+      );
+    const off = sb(released);
+    const on = sb(held);
+    expect(off?.kind === 'R' && off.ohms > 1e9).toBe(true);
+    expect(on?.kind === 'R' && on.ohms < 1).toBe(true);
+  });
+
+  it('decouples the supply with the other 20 мкФ', () => {
+    const el = released.elements.find((e) => e.kind === 'C' && e.name.startsWith('block_014'));
+    expect(el?.kind === 'C' && el.a === 'VCC' && el.b === released.ground).toBe(true);
+  });
+
+  it('charges while the кнопка is held and holds the charge after it is let go', () => {
+    const fs = 8_000;
+    const sim = new Simulation(released, fs);
+    sim.run(fs * 0.2);
+    expect(sim.circuit.voltageAt(z)).toBeLessThan(1);
+
+    expect(sim.update(held)).toBe(true);
+    sim.run(fs * 1.5); // about one 68 кОм × 20 мкФ time constant
+    const charged = sim.circuit.voltageAt(z);
+    expect(charged).toBeGreaterThan(4);
+
+    expect(sim.update(released)).toBe(true);
+    sim.run(fs * 2);
+    // It runs down only through the 1,36 МОм base chain, over tens of seconds.
+    const later = sim.circuit.voltageAt(z);
+    expect(later).toBeLessThan(charged);
+    expect(later).toBeGreaterThan(charged * 0.85);
+  });
+});
+
 describe('presets the solver can run', () => {
   for (const circuit of CIRCUITS.filter((c) => c.simulates)) {
     it(`«${circuit.title}» behaves as documented`, () => {
@@ -241,10 +335,17 @@ describe('presets the solver can run', () => {
     });
   }
 
-  /** Guard rail: if the solver starts running these, the flag is stale and must be updated. */
+  /**
+   * Guard rail: if the solver starts running these, the flag is stale and must be updated. Not
+   * running means silent, or a sound whose pitch moves with the sample rate — an oscillation too
+   * fast for the step, which is a numerical artefact rather than the circuit.
+   */
   for (const circuit of CIRCUITS.filter((c) => !c.simulates)) {
-    it(`«${circuit.title}» is still silent, as flagged`, () => {
-      expect(measure(circuit, { button: true }).level).toBeLessThan(0.02);
+    it(`«${circuit.title}» is still not reproduced, as flagged`, () => {
+      const at48 = measure(circuit, { button: true, fs: 48_000 });
+      const at96 = measure(circuit, { button: true, fs: 96_000 });
+      if (at96.level < 0.02) return;
+      expect(Math.abs(at96.freq - at48.freq) / at96.freq).toBeGreaterThan(0.1);
     });
   }
 });

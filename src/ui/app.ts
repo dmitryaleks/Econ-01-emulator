@@ -93,7 +93,7 @@ export class App {
   private rebuild(): void {
     this.netlist = buildNetlist(this.board);
     this.view.contactNet = this.netlist.contactNet;
-    this.mirror = new Simulation(this.netlist, 12_000);
+    if (!this.mirror?.update(this.netlist)) this.mirror = new Simulation(this.netlist, 12_000);
     this.view.station = this.mirror.radioState.station?.name ?? null;
     this.view.tunedHz = this.mirror.radioState.tunedHz;
     this.audio.setNetlist(this.netlist);

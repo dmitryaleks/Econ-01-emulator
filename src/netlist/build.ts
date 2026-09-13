@@ -10,6 +10,7 @@
 
 import type { Board } from '../model/board.js';
 import { c10Farads, powerOn } from '../model/board.js';
+import { coreCoupling } from '../model/antenna.js';
 import { MODULE_BY_ID } from '../model/catalogue.js';
 import { FACING, FIXED_NETS, cellId, neighbour, panelNetAt, type Cell } from '../model/panel.js';
 import {
@@ -38,8 +39,10 @@ export interface NlBjt {
   kind: 'Q'; name: string; base: NetId; collector: NetId; emitter: NetId; model: string;
 }
 export interface NlVSource { kind: 'V'; name: string; p: NetId; n: NetId; volts: number }
+/** Magnetic coupling between two named inductors: M = k·√(L1·L2), both wound a → b. */
+export interface NlCoupling { kind: 'K'; name: string; l1: string; l2: string; k: number }
 export type NlElement =
-  | NlResistor | NlCapacitor | NlInductor | NlDiode | NlBjt | NlVSource;
+  | NlResistor | NlCapacitor | NlInductor | NlDiode | NlBjt | NlVSource | NlCoupling;
 
 export interface Netlist {
   elements: NlElement[];
@@ -52,6 +55,11 @@ export interface Netlist {
   contactNet: Map<string, NetId>;
   /** Antenna winding terminals, if the antenna module is placed. */
   antenna: { tuned: [NetId, NetId]; coupling: [NetId, NetId] } | null;
+  /**
+   * How the radio-frequency part of the solver sees the case (sim/rf.ts): nets it treats as
+   * RF ground, and built-in elements it leaves out. Omitted, only ground is RF ground.
+   */
+  rf?: { ground: NetId[]; exclude: string[] };
 }
 
 /** Key identifying one physical contact on the field. */
@@ -149,6 +157,7 @@ export function buildNetlist(board: Board): Netlist {
   for (const pl of placed) {
     const def = MODULE_BY_ID.get(pl.defId)!;
     const net = (node: ModuleNode): NetId => uf.find(pl.nodeKey.get(node)!);
+    const wound: Array<{ name: string; winding: string; core: string }> = [];
 
     for (const el of def.elements) {
       const name = `${def.id}@${pl.owner}#${seq++}`;
@@ -164,6 +173,7 @@ export function buildNetlist(board: Board): Netlist {
           elements.push({
             kind: 'L', name, a: net(el.a), b: net(el.b), henries: el.henries, esr: el.esr,
           });
+          if (el.core) wound.push({ name, winding: el.winding ?? name, core: el.core });
           break;
         case 'diode':
           elements.push({
@@ -197,16 +207,40 @@ export function buildNetlist(board: Board): Netlist {
       }
     }
 
+    // Sections on the same core of this module are magnetically coupled.
+    for (let i = 0; i < wound.length; i++) {
+      for (let j = i + 1; j < wound.length; j++) {
+        const [a, b] = [wound[i]!, wound[j]!];
+        if (a.core !== b.core) continue;
+        elements.push({
+          kind: 'K', name: `K:${a.name}:${b.name}`, l1: a.name, l2: b.name,
+          k: coreCoupling(a.winding, b.winding),
+        });
+      }
+    }
+
     if (def.shape === 'antenna') antenna = antennaTerminals(def.elements, net);
   }
 
   // --- 6. Built-in amplifier, battery, controls (Приложение 3) -------------------------------
   // Terminals the field may have shorted together share one net, so resolve names through the
   // same union-find the field used.
+  const builtInFrom = elements.length;
   addBuiltIn(elements, board, (name) => uf.find(name));
 
   const contactNet = new Map<string, NetId>();
   for (const key of contactKeys) contactNet.set(key, uf.find(key));
+
+  // At radio frequency the case is quiet: XT3 sits on C4 50 мкФ, XT7 on the 8 Ом head and C8,
+  // and R1 feeds C3 0,01 мкФ to ground. Only C10 and the input's R1 and C1 load the field.
+  const RF_BUILT_IN = new Set(['C10', 'R1', 'C1']);
+  const rf: Netlist['rf'] = {
+    ground: [FIXED_NETS.VCC, FIXED_NETS.SPK, 'A_R1', FIXED_NETS.BATT_P].map((n) => uf.find(n)),
+    exclude: elements
+      .slice(builtInFrom)
+      .filter((e) => !RF_BUILT_IN.has(e.name))
+      .map((e) => e.name),
+  };
 
   return {
     elements,
@@ -215,6 +249,7 @@ export function buildNetlist(board: Board): Netlist {
     speaker: { p: uf.find(FIXED_NETS.SPK), n: uf.find(FIXED_NETS.GND) },
     contactNet,
     antenna,
+    rf,
   };
 }
 
@@ -265,6 +300,8 @@ function elementNets(el: NlElement): NetId[] {
       return [el.base, el.collector, el.emitter];
     case 'V':
       return [el.p, el.n];
+    case 'K':
+      return [];
   }
 }
 

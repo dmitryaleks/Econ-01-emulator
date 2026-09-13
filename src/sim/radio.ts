@@ -8,6 +8,7 @@
  * recovered audio envelope as a current into the coupling winding. Off tune gives noise.
  */
 
+import { tuningHenries } from '../model/antenna.js';
 import { ANTENNA_EMF } from '../model/types.js';
 import type { Netlist } from '../netlist/build.js';
 import type { Circuit } from './mna.js';
@@ -50,7 +51,6 @@ export const STATIONS: Station[] = [
 export class RadioBlock {
   readonly state: RadioState = { tunedHz: 0, station: null, strength: 0 };
   private readonly coupling: [string, string] | null;
-  private readonly inductance: number;
   private readonly dt: number;
   private t = 0;
   private noise = 0;
@@ -58,10 +58,6 @@ export class RadioBlock {
   constructor(netlist: Netlist, sampleRate: number) {
     this.dt = 1 / sampleRate;
     this.coupling = netlist.antenna ? netlist.antenna.coupling : null;
-    // Total tuned inductance: whichever L1 section the user actually put across C10 dominates.
-    // The full winding is 5.6 mH, the tap 0.51 mH; take the tapped value as the default and let
-    // `retune` refine it from the real capacitance.
-    this.inductance = 5.61e-3;
   }
 
   /** Recompute the tuned frequency for a given C10 setting. */
@@ -73,7 +69,7 @@ export class RadioBlock {
       return;
     }
     // Both L1 sections are available; report the one whose band has a station nearby.
-    const candidates = [0.51e-3, this.inductance].map(
+    const candidates = tuningHenries().map(
       (l) => 1 / (2 * Math.PI * Math.sqrt(l * c10Farads)),
     );
 

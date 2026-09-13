@@ -239,10 +239,12 @@ function transistor(c: Ctx, base: Pin, collector: Pin): void {
   c.restore();
 }
 
-/** The push cap as a ring, with a stub to every face it closes together. */
+/** The push cap as a ring, with a stub to every face the module reaches. */
 function button(c: Ctx, els: Element[]): void {
   const faces = new Set<Pin>();
-  for (const e of els) if (e.kind === 'button') faces.add(e.a as Pin).add(e.b as Pin);
+  for (const e of els) {
+    if (e.kind === 'button' || e.kind === 'link') faces.add(e.a as Pin).add(e.b as Pin);
+  }
   c.beginPath();
   c.arc(0, 0, 0.52, 0, Math.PI * 2);
   c.stroke();

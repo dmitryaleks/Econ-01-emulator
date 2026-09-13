@@ -22,6 +22,8 @@ export interface BjtModel {
   br: number;
   /** Forward Early voltage; Infinity disables the effect. */
   vaf: number;
+  /** Emitter-base reverse breakdown voltage: the junction conducts beyond it. */
+  bvEbo: number;
 }
 
 export const DIODE_MODELS: Record<string, DiodeModel> = {
@@ -31,11 +33,12 @@ export const DIODE_MODELS: Record<string, DiodeModel> = {
 
 export const BJT_MODELS: Record<string, BjtModel> = {
   // Silicon npn, the only transistor supplied as a module.
-  KT315B: { type: 'npn', is: 1e-14, bf: 80, br: 3, vaf: 100 },
-  // Germanium types in the built-in amplifier.
-  MP26A: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60 },
-  MP38: { type: 'npn', is: 2e-7, bf: 30, br: 2, vaf: 60 },
-  MP42B: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60 },
+  // U_ЭБО of the КТ315 family is 6 V.
+  KT315B: { type: 'npn', is: 1e-14, bf: 80, br: 3, vaf: 100, bvEbo: 6 },
+  // Germanium types in the built-in amplifier. [G] breakdown.
+  MP26A: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60, bvEbo: 10 },
+  MP38: { type: 'npn', is: 2e-7, bf: 30, br: 2, vaf: 60, bvEbo: 10 },
+  MP42B: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60, bvEbo: 10 },
 };
 
 /**

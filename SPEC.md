@@ -189,7 +189,7 @@ rotation 0, the module turned as its icon is drawn.
 | `block_023` | «Линия» | — | W–E | **4** |
 | `block_024` | «Тройник» | — | W, E, S joined | **4** |
 | `block_025` | «Мостик» | — | W–E and N–S, crossing apart | **4** |
-| `block_026` | «Кнопка» | normally open | W, E and S all joined while held | 1 |
+| `block_026` | «Кнопка» | normally open | wire W–E; S joined to them while held | 1 |
 
 The antenna's contacts are named by cell along the bar: N1…N6 on its top edge, left to right,
 and E for its right-hand end. Nothing reaches its W end or its bottom edge.

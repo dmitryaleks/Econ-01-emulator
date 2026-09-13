@@ -233,7 +233,77 @@ export const DEVICE_26: Circuit = {
   expect: {},
 };
 
-export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, DEVICE_26];
+/**
+ * Device 24 «Реле времени», page 33 of the manual: the factory mounting drawing, transcribed
+ * cell by cell like devices 6 and 26, antenna included.
+ *
+ * The same antenna oscillator as device 26 (12 кОм feeding the top of L1, the collector on its
+ * tap, L2 in the emitter, C10 across the whole winding, 0,01 мкФ out to XT4), but its base is
+ * fed from a timing capacitor. Holding the кнопка charges 20 мкФ from the supply through 68 кОм;
+ * the capacitor feeds the base through 680 кОм + 680 кОм, with 3300 пФ and 680 пФ from the base
+ * to ground. Released, the capacitor keeps the base fed until it runs down, so the tone stops
+ * some time after the button is let go. A second 20 мкФ decouples the supply.
+ *
+ * The oscillator runs at radio frequency, which an audio-rate solver cannot integrate, so the
+ * tone itself is not heard (`simulates: false`); the timing — the capacitor charging while the
+ * button is held and running down after — is solved exactly.
+ */
+export const DEVICE_24: Circuit = {
+  id: 'device24',
+  title: 'Реле времени (устройство 24)',
+  description:
+    'Заводская схема со страницы 33 руководства. Пока кнопка нажата, конденсатор 20 мкФ ' +
+    'заряжается через 68 кОм и питает базу транзистора генератора; через некоторое время ' +
+    'появляется звук, частота которого постепенно меняется. Отпустите кнопку — звук ' +
+    'оборвётся не сразу, а когда конденсатор разрядится. Раскладка повторяет заводской ' +
+    'рисунок: заняты все 30 гнёзд. Генератор работает на радиочастоте, поэтому сам звук ' +
+    'эмулятор пока не воспроизводит; заряд и разряд конденсатора считаются.',
+  source: 'manual page 33, device 24: factory mounting drawing, transcribed cell by cell',
+  kitLegal: true,
+  simulates: false,
+  volume: 0.6,
+  placements: [
+    { col: 0, row: 0, moduleId: 'block_001', rotation: 2 }, // 2,2 кОм, shorted spare
+    { col: 1, row: 0, moduleId: 'block_015', rotation: 3 }, // 20 мкФ timing: − on the top strip
+    { col: 2, row: 0, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 3, row: 0, moduleId: 'block_024', rotation: 2 }, // «Тройник»
+    { col: 4, row: 0, moduleId: 'block_024', rotation: 2 }, // «Тройник»
+    { col: 5, row: 0, moduleId: 'block_014', rotation: 3 }, // 20 мкФ decoupling: − on XT1
+
+    { col: 0, row: 1, moduleId: 'block_001', rotation: 2 }, // 2,2 кОм, spare
+    { col: 1, row: 1, moduleId: 'block_026', rotation: 3 }, // кнопка: N, S joined; E switched
+    { col: 2, row: 1, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 3, row: 1, moduleId: 'block_003', rotation: 3 }, // 68 кОм from the supply
+    { col: 4, row: 1, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 5, row: 1, moduleId: 'block_023', rotation: 1 }, // «Линия»
+
+    { col: 0, row: 2, moduleId: 'block_023', rotation: 1 }, // «Линия»
+    { col: 1, row: 2, moduleId: 'block_005', rotation: 1 }, // 680 кОм, first of the base chain
+    { col: 2, row: 2, moduleId: 'block_020', rotation: 3 }, // «Угол»
+    { col: 3, row: 2, moduleId: 'block_007', rotation: 2 }, // 1 МОм, spare
+    { col: 4, row: 2, moduleId: 'block_002', rotation: 0 }, // 12 кОм collector feed
+    { col: 5, row: 2, moduleId: 'block_021', rotation: 0 }, // «Крест»: E on XT3
+
+    { col: 0, row: 3, moduleId: 'block_024', rotation: 3 }, // «Тройник»
+    { col: 1, row: 3, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 2, row: 3, moduleId: 'block_004', rotation: 0 }, // 68 кОм, spare
+    { col: 3, row: 3, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 4, row: 3, moduleId: 'block_024', rotation: 3 }, // «Тройник»
+    { col: 5, row: 3, moduleId: 'block_012', rotation: 2 }, // 0,01 мкФ output: E on XT4
+
+    { col: 0, row: 4, moduleId: 'block_011', rotation: 1 }, // 3300 пФ base to ground
+    { col: 1, row: 4, moduleId: 'block_006', rotation: 2 }, // 680 кОм, second of the base chain
+    { col: 2, row: 4, moduleId: 'block_010', rotation: 0 }, // 680 пФ base to ground
+    { col: 3, row: 4, moduleId: 'block_017', rotation: 0 }, // КТ315Б
+    { col: 4, row: 4, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 5, row: 4, moduleId: 'block_022', rotation: 1 }, // «Щель»: E on XT5
+
+    { col: 0, row: ANTENNA_ROW, moduleId: 'block_019' }, // антенна: E end on XT6
+  ],
+  expect: {},
+};
+
+export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, DEVICE_24, DEVICE_26];
 
 export function loadCircuit(board: Board, circuit: Circuit): void {
   board.clear();

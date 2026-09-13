@@ -66,6 +66,11 @@ export interface InductorEl {
   esr: number;
   /** Which winding this section belongs to, e.g. "L1". */
   winding?: string;
+  /**
+   * Sections sharing a core are magnetically coupled, each wound in the same sense from a to b
+   * (see model/antenna.ts).
+   */
+  core?: string;
 }
 
 export interface DiodeEl {

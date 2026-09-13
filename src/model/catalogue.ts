@@ -8,6 +8,7 @@
  */
 
 import registry from '../../assets/blocks/block_spec.json';
+import { windingSection } from './antenna.js';
 import {
   ANTENNA_EMF,
   PINS,
@@ -52,17 +53,6 @@ interface Block {
   num_in_kit: number;
   pinout: { status: string; connections: (TwoTerminal | MultiTerminal)[] };
 }
-
-/**
- * Antenna winding sections, estimated from turn count on this rod (L ~ N^2): the 100-turn
- * section tunes medium wave against C10 = 10…100 pF, the full 330 turns long wave. The solver
- * has no mutual inductance, so sections are separate coils. Keyed by winding and turns.
- */
-const WINDINGS: Record<string, { henries: number; esr: number }> = {
-  'L1:100': { henries: 0.51e-3, esr: 1.2 },
-  'L1:230': { henries: 5.1e-3, esr: 4.0 },
-  'L2:25': { henries: 32e-6, esr: 0.4 },
-};
 
 /** The winding the radio induces its signal into. */
 const COUPLING_WINDING = 'L2';
@@ -142,13 +132,15 @@ function elementsOf(block: Block): Element[] {
         out.push({ kind: 'diode', anode: a, cathode: b, model: p.model! });
         break;
       case 'inductor': {
-        const w = WINDINGS[`${c.winding}:${c.turns}`];
-        if (!w) throw new Error(`block_spec.json: no inductance for ${c.winding} ${c.turns} turns`);
+        if (!c.winding || !c.turns) {
+          throw new Error(`block_spec.json: ${block.name} has an inductor without winding/turns`);
+        }
+        const w = { ...windingSection(c.turns), winding: c.winding, core: block.name };
         if (c.winding === COUPLING_WINDING) {
-          out.push({ kind: 'inductor', a, b: '#emf', ...w, winding: c.winding });
+          out.push({ kind: 'inductor', a, b: '#emf', ...w });
           out.push({ kind: 'emf', p: '#emf', n: b, name: ANTENNA_EMF });
         } else {
-          out.push({ kind: 'inductor', a, b, ...w, winding: c.winding });
+          out.push({ kind: 'inductor', a, b, ...w });
         }
         break;
       }

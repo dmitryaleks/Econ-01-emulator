@@ -52,8 +52,14 @@ class SolverProcessor extends AudioWorkletProcessor {
     super();
     this.port.onmessage = (ev: MessageEvent<ToWorklet>) => {
       const msg = ev.data;
+      const divisorChanged = msg.divisor !== undefined && msg.divisor !== this.divisor;
       if (msg.divisor) this.divisor = msg.divisor;
-      if (msg.type === 'netlist' && msg.netlist) this.netlist = msg.netlist;
+      if (msg.type === 'netlist' && msg.netlist) {
+        this.netlist = msg.netlist;
+        // A button, the volume or the tuning only change values: keep the running circuit,
+        // so capacitors stay charged across a press.
+        if (!divisorChanged && this.sim?.update(msg.netlist)) return;
+      }
       this.rebuild();
     };
   }

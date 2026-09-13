@@ -4,6 +4,7 @@
  */
 
 import type { Netlist } from '../netlist/build.js';
+import { topologyOf } from '../sim/mna.js';
 import { Simulation } from '../sim/transient.js';
 import workletUrl from './solver-worklet.ts?worker&url';
 import type { FromWorklet } from './solver-worklet.js';
@@ -34,6 +35,8 @@ export class AudioEngine {
   }
   private pending: Netlist | null = null;
   private divisor = 2;
+  /** Topology the current divisor was benchmarked for. */
+  private topology = '';
 
   readonly status: EngineStatus = {
     running: false,
@@ -105,7 +108,12 @@ export class AudioEngine {
   setNetlist(netlist: Netlist): void {
     this.pending = netlist;
     if (!this.node || !this.ctx) return;
-    this.divisor = this.chooseDivisor(netlist, this.ctx.sampleRate);
+    // Only benchmark when the circuit itself changed; a button press or a knob keeps the rate.
+    const topology = topologyOf(netlist);
+    if (topology !== this.topology) {
+      this.divisor = this.chooseDivisor(netlist, this.ctx.sampleRate);
+      this.topology = topology;
+    }
     // `contactNet` is a UI concern and does not need to cross the thread boundary.
     const lean: Netlist = { ...netlist, contactNet: new Map() };
     this.node.port.postMessage({ type: 'netlist', netlist: lean, divisor: this.divisor });

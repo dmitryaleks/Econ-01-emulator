@@ -2,7 +2,7 @@
   "face_convention": "N/E/S/W are the cube's side contacts with the module turned exactly as drawn in its raw_orig_icon (rotation 0). A module wider than one cell has one contact position per cell along its long edges, numbered from 1 at the left end (N1…N6, S1…S6); W and E are its two ends.",
   "marker_convention": "icon_marker is the small ring printed on a module's icon to tell it apart from another module drawn with exactly the same wiring but a different value. Positions are in the icon's own circle, turned as drawn: centre (0, 0), radius 1, x to the right (E), y downward (S). stem_to, when present, is where a short stem joins the ring to the part's body.",
   "placement_convention": "Every module is one cell tall; width_cells gives its width. A module can be turned in quarter steps and placed in any field cell unless it sets rotatable: false or a slot (the antenna bar only fits the antenna slot, as drawn).",
-  "connection_convention": "Each entry in pinout.connections is either a two-terminal element or wire, {from, to, via}, or a multi-terminal element, {via, terminals: {terminal name: face}} (e.g. a bjt's base/collector/emitter). A polarized two-terminal element (symmetric: false) conducts from → to: a diode's anode is 'from' and its cathode 'to'; an electrolytic's + terminal is 'from'. A button's terminals are all apart when released and all joined while it is held. An inductor section may also give its winding name and turns.",
+  "connection_convention": "Each entry in pinout.connections is either a two-terminal element or wire, {from, to, via}, or a multi-terminal element, {via, terminals: {terminal name: face}} (e.g. a bjt's base/collector/emitter). A polarized two-terminal element (symmetric: false) conducts from → to: a diode's anode is 'from' and its cathode 'to'; an electrolytic's + terminal is 'from'. A button's terminals are apart when released and joined while it is held. An inductor section may also give its winding name and turns.",
   "elements": [
   {
     "name": "block_001",
@@ -688,11 +688,12 @@
     "pinout": {
       "status": "confirmed",
       "connections": [
-        { "via": "button", "terminals": { "a": "W", "b": "E", "c": "S" } }
+        { "from": "W", "to": "E", "via": "wire" },
+        { "via": "button", "terminals": { "a": "E", "b": "S" } }
       ],
-      "source": "user"
+      "source": "user, from the device 24 factory layout"
     },
-    "notes": "OCR'd from blocks_025-026_raw_table.png, row 2. Taller than a cube, with a push cap; normally open per SPEC.md (not printed in the table). Confirmed: released, W, E and S are all apart; held, all three are joined (the inner ring in the icon is the cap, with stubs to W, E and S). catalogue.ts:sb switches only W–E, so it is missing S. The small dash below-left of the circle is a scan speck. short_id ZA wraps the letter chain past YZ."
+    "notes": "OCR'd from blocks_025-026_raw_table.png, row 2. Taller than a cube, with a push cap; normally open per SPEC.md (not printed in the table). W and E are joined by a plain wire; pressing the cap joins S to them (the inner ring in the icon is the cap, with stubs to W, E and S). First recorded as all three apart until pressed; corrected after device 24 «Реле времени» (page 33), whose layout puts the timing capacitor and the base resistor chain on W and E, which its schematic joins permanently, and the 68 кОм from the supply on S. Device 6 fits either reading. The small dash below-left of the circle is a scan speck. short_id ZA wraps the letter chain past YZ."
   }
 ]
 }

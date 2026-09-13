@@ -132,7 +132,7 @@ Transcribe the 30 mounting drawings from `research/manual/book/10…39.png` into
 Loading a preset fills the board; the solver still runs it for real.
 
 Done so far: the harness (`src/circuits/index.ts`, `test/circuits.test.ts`), the module
-registry, the panel terminal map, and three circuits.
+registry, the panel terminal map, and four circuits.
 
 - **Module registry** — `assets/blocks/block_spec.json` holds every module type with a confirmed
   face-to-face pinout, and `src/model/catalogue.ts` is generated from it. Module ids are the
@@ -153,6 +153,20 @@ registry, the panel terminal map, and three circuits.
   audio-rate solver cannot run, so `simulates: false`. Its two supplied wires are a moisture probe
   with free ends, which the lead model (contact to contact) cannot express yet, so they are
   described rather than placed.
+- **Реле времени (устройство 24)** — transcribed the same way and checked part by part against its
+  schematic: device 26's antenna oscillator with its base fed from a 20 мкФ timing capacitor that
+  the кнопка charges through 68 кОм. The charging while held and the slow run-down after release
+  are solved and tested. The tone is a radio-frequency oscillator again: the solver does produce a
+  sound, but its pitch moves with the sample rate (about 1,8 kHz at 12 kHz, 2,8 kHz at 48 kHz,
+  4 kHz at 192 kHz), so it is an artefact and the preset stays `simulates: false`. This layout also
+  corrected the кнопка's pinout: W–E is a plain wire and pressing joins S to it.
+
+Pressing the кнопка or moving a knob only changes element values, so the running simulation now
+takes the new values in place (`Simulation.update`) instead of restarting from a DC operating
+point. That keeps capacitors charged across a press, which a time relay depends on.
+
+A preset flagged `simulates: false` is guarded by a test that fails once the solver reproduces
+it: silent, or a sound whose pitch differs by more than 10 % between 48 and 96 kHz.
 
 Presets carry two honest flags, `kitLegal` and `simulates`, and the UI shows both.
 

@@ -12,7 +12,7 @@ export interface RunResult {
 
 export class Simulation {
   readonly circuit: Circuit;
-  private readonly netlist: Netlist;
+  private netlist: Netlist;
   private readonly radio: RadioBlock;
   private failures = 0;
   private steps = 0;
@@ -36,6 +36,19 @@ export class Simulation {
   /** Recompute the tuned frequency after the tuning knob moves. */
   retune(c10Farads: number): void {
     this.radio.retune(c10Farads);
+  }
+
+  /**
+   * Carry on with new element values when only values changed (a button, the volume, the
+   * tuning), keeping the circuit's state. False when the netlist's topology differs and a new
+   * Simulation is needed.
+   */
+  update(netlist: Netlist): boolean {
+    if (!this.circuit.updateValues(netlist)) return false;
+    this.netlist = netlist;
+    const c10 = netlist.elements.find((e) => e.name === 'C10');
+    this.radio.retune(c10 && c10.kind === 'C' ? c10.farads : 0);
+    return true;
   }
 
   /** One step; returns the loudspeaker voltage. */
