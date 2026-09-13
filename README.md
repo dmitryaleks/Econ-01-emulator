@@ -7,7 +7,7 @@
   <code>▶ 26 MODULE TYPES</code>&nbsp;
   <code>▶ 5 TRANSISTORS OF BUILT-IN AMP</code>&nbsp;
   <code>▶ 110 TESTS</code>&nbsp;
-  <code>▶ 0 AUDIO SAMPLES</code>
+  <code>▶ 0 RECORDED SOUNDS</code>
 </p>
 
 ```text
@@ -100,6 +100,8 @@ In the GIF the tone appears on the press, climbs from about 50 Hz to 410 Hz as t
 charges, and keeps sounding after release, drifting down as the charge leaks through 1.36 MΩ.
 That is the "relay". CH2 on the scope is the capacitor itself.
 
+<p align="center">🔊 <a href="docs/readme/audio/d24_relay.wav?raw=true"><b>LISTEN</b> · the same run as the GIF</a> <sub>(11 s WAV)</sub></p>
+
 ### Device 12 «Сирена» (Siren)
 
 <p align="center"><img src="docs/readme/siren.gif" alt="Device 12: steady tone while held, a rising and falling sweep after each release" width="100%"></p>
@@ -109,27 +111,67 @@ A classic astable multivibrator with 20 µF in the left transistor's emitter, wh
 1.4 kHz, then falls away as the transistor starves, silent within a second and a half. Tap the key
 and you have a siren: *«нажимая и отпуская кнопку, можно приближенно имитировать сигнал сирены»*.
 
+<p align="center">🔊 <a href="docs/readme/audio/d12_siren.wav?raw=true"><b>LISTEN</b> · the same three presses as the GIF</a> <sub>(11 s WAV)</sub></p>
+
 > Both GIFs are rendered frame by frame from the emulator's own panel and scope renderers, and
 > its own solver, at 12 kHz. The side column is added telemetry: time, key state, and the pitch
 > measured from the loudspeaker signal.
+>
+> **About the sound samples.** They are approximate by nature. Each one is the emulator's
+> loudspeaker signal, solved offline at 48 kHz with the same key presses, sent through the
+> browser's own output stage (a tanh soft clip), peak-normalised and saved as 24 kHz WAV. The real
+> kit's 0,5ГДШ-2 loudspeaker, its plastic case and a tiring battery are not modelled. GitHub
+> can't play audio inline, so each 🔊 link opens the WAV in the browser's player.
 
 ---
 
 ## A3 · Oscilloscope party
 
 Clip up to two probes onto any contact and the scope shows real node voltages. Six presets,
-probed where it gets interesting:
+probed where it gets interesting, each with what it sounds like:
 
-<p align="center"><img src="docs/readme/scope_gallery.png" alt="Phosphor scope traces of six presets" width="100%"></p>
-
-- **09 «Пищалка»:** two amplifying stages in a loop, rounded and phase-shifted.
-- **06 «Мультивибратор»:** textbook cross-coupled switches with a 27 µs pulse and a long pause.
-- **12 «Сирена»:** the base of VT2 recharging exponentially from the −6.5 V its partner kicks it
-  to (the emitter-base junction breaks down there, as on the real part).
-- **15 «Морзянка с помехами»:** a pulse only 18 µs wide, which forced the solver to resolve
-  events shorter than one audio sample.
-- **24 and 27:** the antenna oscillators, where every spike is an RF burst and every ramp is a
-  base recovering.
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/readme/scope_d9.png" alt="Device 9 scope: both collectors" width="100%"><br>
+<b>09 «Пищалка»</b>: two amplifying stages in a loop, rounded and phase-shifted.<br>
+🔊 <a href="docs/readme/audio/d09_pishchalka.wav?raw=true"><b>LISTEN</b></a> · the key sends <code>··· ─── ···</code>
+</td>
+<td width="50%" valign="top">
+<img src="docs/readme/scope_d6.png" alt="Device 6 scope: both collectors" width="100%"><br>
+<b>06 «Мультивибратор»</b>: textbook cross-coupled switches, a 27 µs pulse and a long pause.<br>
+🔊 <a href="docs/readme/audio/d06_multivibrator.wav?raw=true"><b>LISTEN</b></a> · two presses of the key
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/readme/scope_d12.png" alt="Device 12 scope: collector and base" width="100%"><br>
+<b>12 «Сирена»</b>: the base of VT2 recharging from the −6.5 V its partner kicks it to, where
+the emitter-base junction breaks down, as on the real part.<br>
+🔊 <a href="docs/readme/audio/d12_siren.wav?raw=true"><b>LISTEN</b></a> · hold, then three sweeps
+</td>
+<td width="50%" valign="top">
+<img src="docs/readme/scope_d15.png" alt="Device 15 scope: base and collector" width="100%"><br>
+<b>15 Морзе с помехами</b>: a pulse only 18 µs wide, shorter than one audio sample, which the
+solver has to catch anyway.<br>
+🔊 <a href="docs/readme/audio/d15_morse_qrm.wav?raw=true"><b>LISTEN</b></a> · <code>─·─· ──·─</code> (CQ) through the whistle
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/readme/scope_d24.png" alt="Device 24 scope: loudspeaker and base" width="100%"><br>
+<b>24 Реле времени</b>: every spike is a radio-frequency burst, and every ramp is the base
+recovering before the next one.<br>
+🔊 <a href="docs/readme/audio/d24_relay.wav?raw=true"><b>LISTEN</b></a> · press, hold, let go
+</td>
+<td width="50%" valign="top">
+<img src="docs/readme/scope_d27.png" alt="Device 27 scope: loudspeaker and base" width="100%"><br>
+<b>27 Двухтональный генератор</b>: the same squegging, retuned by the key from 1.28 to
+1.10 kHz.<br>
+🔊 <a href="docs/readme/audio/d27_two_tone.wav?raw=true"><b>LISTEN</b></a> · key up, down, up, down
+</td>
+</tr>
+</table>
 
 Plot one channel against the other and the same recordings turn into figures. (The in-app scope
 is time-based; these X–Y screens are drawn from its recorded traces.) The third screen goes deeper:
@@ -145,21 +187,21 @@ current, from a brute-force reference simulation.
 Each factory preset is the manual's **mounting drawing transcribed cell by cell**: all 30 cells,
 spares included, turned as drawn. Its netlist is checked against the printed schematic by a test.
 
-| # | Device | What you get | Solver |
-|---|---|---|---|
-| 6 | Мультивибратор | tone while the key is held, 2.4 kHz | ✅ correct; slower than real time in the browser |
-| 8 | Мультивибратор с низкой частотой | a click every ~1 s | ✅ |
-| 9 | «Пищалка» | Morse key tone, 2.1 kHz | ✅ |
-| 12 | «Сирена» | steady 400 Hz, sweep on release | ✅ |
-| 13 | Звуковой генератор | 400 Hz test tone (output wires described, not placed) | ✅ |
-| 15 | Генератор для азбуки Морзе с помехами | 1.6 kHz "interference", 570 Hz while keyed | ✅ correct; ~50 % real time in the browser |
-| 24 | Реле времени | tone after a press that outlives the press | ✅ RF squegging |
-| 26 | «Электронная няня» | moisture alarm on the antenna oscillator | ⚠️ probe not modelled |
-| 27 | Двухтональный генератор (+ the manual's other-tones variant) | 1.28 / 1.10 kHz | ✅ RF squegging |
-| 28 | Генератор сигналов | ~1.1 kHz squeg, a long-wave "transmitter" | ✅ RF squegging |
-| 29 | «Метроном» | ~12 ticks a second | ✅ at ≥ 24 kHz; see [B4](#b4--known-glitches) |
-| 30 | «Морзянка» | keyed transmitter | ✅ RF squegging |
-| — | Детекторный приёмник | tune the knob to fictional stations | ✅ reconstruction, not from the manual |
+| # | Device | What you get | Listen | Solver |
+|---|---|---|---|---|
+| 6 | Мультивибратор | tone while the key is held, 2.4 kHz | [🔊](docs/readme/audio/d06_multivibrator.wav?raw=true) | ✅ correct; slower than real time in the browser |
+| 8 | Мультивибратор с низкой частотой | a click every ~1 s | [🔊](docs/readme/audio/d08_slow_multivibrator.wav?raw=true) | ✅ |
+| 9 | «Пищалка» | Morse key tone, 2.1 kHz | [🔊](docs/readme/audio/d09_pishchalka.wav?raw=true) | ✅ |
+| 12 | «Сирена» | steady 400 Hz, sweep on release | [🔊](docs/readme/audio/d12_siren.wav?raw=true) | ✅ |
+| 13 | Звуковой генератор | 400 Hz test tone (output wires described, not placed) | [🔊](docs/readme/audio/d13_sound_generator.wav?raw=true) | ✅ |
+| 15 | Генератор для азбуки Морзе с помехами | 1.6 kHz "interference", 570 Hz while keyed | [🔊](docs/readme/audio/d15_morse_qrm.wav?raw=true) | ✅ correct; ~50 % real time in the browser |
+| 24 | Реле времени | tone after a press that outlives the press | [🔊](docs/readme/audio/d24_relay.wav?raw=true) | ✅ RF squegging |
+| 26 | «Электронная няня» | moisture alarm on the antenna oscillator | — | ⚠️ probe not modelled |
+| 27 | Двухтональный генератор (+ the manual's other-tones variant) | 1.28 / 1.10 kHz | [🔊](docs/readme/audio/d27_two_tone.wav?raw=true) | ✅ RF squegging |
+| 28 | Генератор сигналов | ~1.1 kHz squeg, a long-wave "transmitter" | [🔊](docs/readme/audio/d28_signal_generator.wav?raw=true) | ✅ RF squegging |
+| 29 | «Метроном» | ~12 ticks a second | [🔊](docs/readme/audio/d29_metronome.wav?raw=true) | ✅ at ≥ 24 kHz; see [B4](#b4--known-glitches) |
+| 30 | «Морзянка» | keyed transmitter | [🔊](docs/readme/audio/d30_morse_transmitter.wav?raw=true) | ✅ RF squegging |
+| — | Детекторный приёмник | tune the knob to fictional stations | [🔊](docs/readme/audio/detector_receiver.wav?raw=true) | ✅ reconstruction, not from the manual |
 
 ---
 
