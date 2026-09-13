@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ЭКОН-01 — электронный конструктор</title>
+    <meta
+      name="description"
+      content="Эмулятор советского электронного конструктора ЭКОН-01 (1982) с настоящим расчётом схемы."
+    />
+    <script type="module" crossorigin src="./assets/index-T5fYs4oU.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BLiVpS2w.css">
+  </head>
+  <body data-skin="grey">
+    <div id="app">
+      <header class="bar">
+        <h1>ЭКОН&#183;01</h1>
+        <p class="sub">электронный конструктор &#183; ВНИИ «Электронстандарт», 1982</p>
+        <div class="spacer"></div>
+        <button id="power" type="button" class="btn primary">Включить звук</button>
+        <button id="skin" type="button" class="btn">Реплика (серый)</button>
+        <button id="sandbox" type="button" class="btn">Свободный режим</button>
+        <button id="clear" type="button" class="btn">Очистить поле</button>
+      </header>
+
+      <main>
+        <section class="stage">
+          <canvas id="panel"></canvas>
+          <div id="hint" class="hover-hint" role="tooltip" aria-hidden="true"></div>
+        </section>
+
+        <aside class="side">
+          <h2>Схемы</h2>
+          <div id="circuits" class="circuits"></div>
+
+          <h2>Модули</h2>
+          <p class="hint">
+            Перетащите модуль на поле. Щелчок, правая кнопка мыши или клавиша R поворачивают
+            его, Alt+щелчок снимает. Щелчок по контакту ставит щуп. Кнопку нажимайте за колпачок
+            в центре.
+          </p>
+          <div id="bin" class="bin"></div>
+
+          <h2>Осциллограф</h2>
+          <canvas id="scope"></canvas>
+          <p id="status" class="status">ожидание</p>
+          <p class="hint small">
+            Схема считается по-настоящему: узловой анализ, модели Эберса—Молла для
+            КТ315Б и германиевых МП26А/МП38/МП42Б. Радиоприём — единственный
+            поведенческий блок.
+          </p>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
