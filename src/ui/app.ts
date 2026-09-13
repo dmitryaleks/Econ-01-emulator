@@ -85,7 +85,10 @@ export class App {
         : '';
       this.setStatus(
         `${s.running ? 'питание подано' : 'ожидание'}${rate}` +
-          (s.converged ? '' : ' · схема не сходится'),
+          (s.converged ? '' : ' · схема не сходится') +
+          (s.running && s.pace < 0.9
+            ? ` · не успевает: ${Math.round(s.pace * 100)} % реального времени`
+            : ''),
       );
       this.dirty = true;
     };

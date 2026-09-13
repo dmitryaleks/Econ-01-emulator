@@ -443,6 +443,7 @@ export class RfNetwork {
 
 /** ln I0(a), finite for any swing. */
 export function logI0(a: number): number {
+  if (a === 0) return 0;
   return a + Math.log(besselI0e(a));
 }
 

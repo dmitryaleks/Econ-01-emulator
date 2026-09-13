@@ -84,7 +84,8 @@ expected node and element counts.
 
 ## Phase 5 — Circuit solver ✅ done
 
-- `sim/matrix.ts` — dense LU with partial pivoting (boards stay under ~80 nodes).
+- `sim/matrix.ts` — LU replaying a Markowitz elimination plan, SPICE-style, with the determinant's
+  sign for the switching-edge check (see "Resolved: astable start-up").
 - `sim/mna.ts` — stamps: R; C and L by backward-Euler companion (`Geq = C/h`, `Ieq`);
   independent V and I sources; diode (Shockley, `Vt`-limited, with `gmin`); BJT (Ebers-Moll,
   per-part parameters so germanium and silicon stages behave differently); potentiometer; switch.
@@ -146,8 +147,8 @@ registry, the panel terminal map, and four circuits.
   demonstrably goes quiet when you tune off station.
 - **Мультивибратор (устройство 6)** — the factory mounting drawing transcribed cell by cell: all
   30 cells filled, no leads, `kitLegal: true`. Its netlist, traced from contact alone, is the
-  schematic, and the test checks it part by part. It does not yet make a sound; see the defect
-  below.
+  schematic, and the test checks it part by part. Held, it sounds at about 2,4 кГц at every
+  sample rate; see "Resolved: astable start-up" below for what that took, and what it costs.
 - **Пищалка (устройство 9)** — transcribed the same way and checked part by part against its
   schematic. The netlist is the schematic, and three spare modules touch it at one end only (1 МОм,
   12 кОм, 0,01 мкФ). It is two amplifying stages in a loop rather than cross-coupled switches, so
@@ -167,10 +168,40 @@ registry, the panel terminal map, and four circuits.
 - **Реле времени (устройство 24)** — transcribed the same way and checked part by part against its
   schematic: device 26's antenna oscillator with its base fed from a 20 мкФ timing capacitor that
   the кнопка charges through 68 кОм. The charging while held and the slow run-down after release
-  are solved and tested. The tone is a radio-frequency oscillator again: the solver does produce a
-  sound, but its pitch moves with the sample rate (about 1,8 kHz at 12 kHz, 2,8 kHz at 48 kHz,
-  4 kHz at 192 kHz), so it is an artefact and the preset stays `simulates: false`. This layout also
+  are solved and tested. The RF solver reproduces its squegging: held from the operating point it
+  bursts about 455 times a second at 48 and 96 кГц, so `simulates: true`. This layout also
   corrected the кнопка's pinout: W–E is a plain wire and pressing joins S to it.
+- **Сирена (устройство 12)** — transcribed the same way and checked against its schematic with
+  `test/schematic.ts`. A classic multivibrator whose left emitter goes to ground through 20 мкФ,
+  shorted by the кнопка. Held: a steady 410 Гц. Let go: the pitch climbs to about 1,3 кГц in half a
+  second and the tone dies within 1,5 s, the same at 24 and 48 кГц; the manual's «сирена». Six
+  modules carry only a wire or nothing.
+- **Медленный мультивибратор (устройство 8)** — device 6's circuit with 20 мкФ coupling
+  capacitors. The collectors switch every 1,06 с at 12 and 48 кГц alike, and the loudspeaker clicks.
+  The manual speaks of intervals of several seconds; +80 % electrolytics would stretch towards that.
+- **Звуковой генератор (устройство 13)** — device 9's two-stage loop with other values and no
+  кнопка: about 400 Гц at every rate. Its two output wires have loose far ends and are described,
+  not placed.
+- **Азбука Морзе с помехами (устройство 15)** — a multivibrator whose кнопка adds 0,01 мкФ beside
+  the 680 пФ: it whistles at 1,6 кГц (the interference) and drops to 570 Гц while held, from 24 to
+  96 кГц. The right transistor only conducts for an 18 мкс pulse a cycle, which is what made the
+  step-bend threshold scale with the step (sim/mna.ts). Transcribed from a faint scan with its
+  contrast raised.
+- **Генератор сигналов (устройство 28)** — device 26's oscillator with L2 to ground; it squegs at
+  about 1,1 кГц at 12 to 96 кГц.
+- **Метроном (устройство 29)** — the oscillator with the base held by 20 мкФ + 20 мкФ and C10 across
+  part of L1 only. It squegs every ~85 мс: a brute-force transient gives 78–85 мс, the hybrid RF
+  solver 85–100 мс with more jitter, at 24 кГц and above. This device found a burst-solver bug: a
+  burst starts from the envelope's swing laid over the circuit, which can forward-bias a junction by
+  volts; Newton then walked it down a thermal voltage per iteration, ran out of iterations, and the
+  solution blew up. Junctions in `sim/burst.ts` are now linearised no higher than 12 Vt above their
+  critical voltage.
+- **Морзянка (устройство 30)** — device 28 keyed by the кнопка: silent released, squegging at about
+  1,1 кГц held.
+
+Devices 9 and 27 and every preset since are checked with `test/schematic.ts`, which searches for
+an assignment of the schematic's nodes to nets under which every part is a module element and no
+spare bridges two of them.
 
 Pressing the кнопка or moving a knob only changes element values, so the running simulation now
 takes the new values in place (`Simulation.update`) instead of restarting from a DC operating
@@ -190,37 +221,45 @@ exists.
 **Done when** each preset has a golden test: load, run 2 s, assert the expected outcome
 (oscillation frequency band, audio RMS, or quiescent current).
 
-## Known defect: astable start-up ◻ blocks the multivibrator presets
+## Resolved: astable start-up ✅ — multivibrators run, but the fast ones are expensive
 
-**Symptom.** Every preset built on an astable multivibrator loads with a correct netlist and
-then sits silent. `test/circuits.test.ts` verifies device 6's netlist component by component
-against the manual's schematic, so the transcription is right; the solver is what fails.
+**What it was.** Two separate things kept every cross-coupled multivibrator silent.
 
-**Cause.** An astable's DC operating point is a genuine unstable equilibrium — both transistors
-saturated, both coupling capacitors at rest. `Simulation` starts every transient from exactly
-that point, so it balances there forever. A real one escapes during switch-on, when both
-devices pass through the active region and the stronger one wins.
+1. **Its operating point is a stable state, not an unstable one.** Both transistors saturated, the
+   loop has no gain, and nothing leaves it. A real one leaves it only because its capacitors charge
+   unevenly as it is powered. `Simulation` now starts the field's capacitors empty
+   (`Circuit.dischargeModules`): a module is plugged into a case that is already on. Boards with
+   the antenna keep the operating point, which the RF envelope starts from.
+2. **Backward Euler damps a switching edge instead of following it.** The edge is a mode that
+   grows at around 10⁹ /s through the junction capacitances. For hλ ≫ 1 backward Euler's
+   amplification 1/(1 − hλ) is tiny, so an audio-rate step settles on the unstable balance between
+   the two states, and the oscillation dies there within a few cycles (device 12 held: 0,16 s at
+   48 кГц).
 
-**What was tried, and what it cost** (all reverted; the solver in the repo is the known-good one):
+**The fix, in `sim/mna.ts` (`advance`).**
+- Transistors carry constant junction capacitances (`cje`, `cjc` in `sim/models.ts`), so an edge
+  is a fast mode rather than a jump with no time scale at all. Boards with the antenna leave them
+  out.
+- The determinant of the step's matrix, which the LU already has, changes sign exactly when a
+  real mode grows with hλ > 1 (`unstable`). A trial solve that meets such a matrix, or does not
+  converge in 10 iterations, is abandoned at once.
+- The step is then covered in substeps, from h/8 down to picoseconds as needed, bounded by how fast
+  the circuit is speeding up, and growing again after the edge. A step whose junction voltages
+  bend by more than 2 V is taken in substeps too, so a low sample rate cannot jump an edge.
+- `sim/matrix.ts` reports the determinant's sign; the linear part of the matrix is built once per
+  step size instead of every Newton iteration, and every element writes straight into fixed
+  matrix positions. That made every solve about twice as fast (the perf test went from 2,2× to
+  2,9× real time).
 
-| Attempt | Result |
-|---|---|
-| Per-device parameter spread (real parts are never identical) | Correct and cheap, but not sufficient alone |
-| Cold start — capacitors discharged before the transient | Necessary, not sufficient |
-| Ramping the supply over 0,05–20 ms to model the switch closing | Starts it, but the circuit then **latches** like a bistable |
-| Emitter-base avalanche clamp at −6 V | Right physics — a real astable's base does break down every cycle, and without it the model ran to −539 V — but not the blocker |
-| Rewriting `limitJunction` as SPICE's continuous `pnjlim` | A real bug fixed: the old one snapped to `vcrit` on a falling junction voltage, which is textbook limit-cycle behaviour. Still not sufficient |
-| Limiter-aware convergence: an iteration where a junction limiter clamped does not count as converged (added with the RF work) | A real bug fixed, and the astable unit test now lands on its period. Device 6 still sits silent at its operating point, so the start-up itself is not solved; device 9, which is not a cross-coupled astable, runs |
-| Adaptive sub-stepping down to h/64 | Produces a plausible 1,3 кГц square wave, but **87 % of steps need subdivision at every sample rate from 96 к to 768 кГц**, and it runs at 0,02× real time |
+**Result.** Device 6 sounds at 2,36–2,40 кГц and device 12 at 410 Гц held, the same at 24, 48 and
+96 кГц. Device 24's squegging needed only its flag updated.
 
-**Diagnosis.** Subdivision rate is flat across two decades of timestep, so this is not stiffness:
-Newton is limit-cycling in the nonlinear iteration itself, and 2000 iterations do not help. The
-remaining suspects are the convergence criterion (currently on node voltages only — SPICE also
-tests device currents) and residual discontinuity in the limiting scheme.
-
-**Next step.** Reproduce the limit cycle on the smallest possible circuit — two cross-coupled
-transistors, no amplifier — and print the iterate sequence for one failing step. That will show
-whether it oscillates between two states (limiting) or wanders (criterion).
+**Cost.** An edge costs about 40 substeps and 170 solves, whatever the sample rate. Device 12
+(two edges at 410 Гц) runs at 0,4× real time in Node and keeps up in Chrome at 48 кГц. Device 6
+switches 4700 times a second and needs about 2× real time in Node; in Chrome the worklet manages
+34 % of real time, and the status line now says so (`EngineStatus.pace`). `chooseDivisor` times
+each solver rate separately, with the кнопка held, and stops lowering the rate once that no longer
+pays. See UNSOLVED.md for what was tried to make edges cheaper.
 
 ## Phase 9 — Polish ◻ partly done
 

@@ -24,6 +24,9 @@ export interface BjtModel {
   vaf: number;
   /** Emitter-base reverse breakdown voltage: the junction conducts beyond it. */
   bvEbo: number;
+  /** Emitter and collector junction capacitances, held constant. */
+  cje: number;
+  cjc: number;
 }
 
 export const DIODE_MODELS: Record<string, DiodeModel> = {
@@ -34,11 +37,13 @@ export const DIODE_MODELS: Record<string, DiodeModel> = {
 export const BJT_MODELS: Record<string, BjtModel> = {
   // Silicon npn, the only transistor supplied as a module.
   // U_ЭБО of the КТ315 family is 6 V.
-  KT315B: { type: 'npn', is: 1e-14, bf: 80, br: 3, vaf: 100, bvEbo: 6 },
+  // C_К of the КТ315 family is at most 7 pF. [G] C_Э.
+  KT315B: { type: 'npn', is: 1e-14, bf: 80, br: 3, vaf: 100, bvEbo: 6, cje: 10e-12, cjc: 7e-12 },
   // Germanium types in the built-in amplifier. [G] breakdown.
-  MP26A: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60, bvEbo: 10 },
-  MP38: { type: 'npn', is: 2e-7, bf: 30, br: 2, vaf: 60, bvEbo: 10 },
-  MP42B: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60, bvEbo: 10 },
+  // C_К from the reference data of each type. [G] C_Э.
+  MP26A: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60, bvEbo: 10, cje: 30e-12, cjc: 50e-12 },
+  MP38: { type: 'npn', is: 2e-7, bf: 30, br: 2, vaf: 60, bvEbo: 10, cje: 30e-12, cjc: 60e-12 },
+  MP42B: { type: 'pnp', is: 2e-7, bf: 40, br: 2, vaf: 60, bvEbo: 10, cje: 30e-12, cjc: 30e-12 },
 };
 
 /**

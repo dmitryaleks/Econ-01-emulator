@@ -256,6 +256,12 @@ confirmed pinouts of §4, and checked against each device's schematic:
   with its W contact on a left clip point, so its switched pair must be E–S. This agrees with the
   pinout device 24 settled: W–E joined, S switched.
 
+- **Device 12** «Сирена» (p. 21): the supply reaches XT3 through a «Щель» and a «Крест», the
+  output 0,01 µF reaches XT4, and the top strip is tied to XT1 by the «Щель» in the top-right cell.
+  The кнопка is turned 180°: its joined pair runs along row 4 and its switched contact faces up,
+  onto the right emitter's ground. A spare 680 kΩ joins XT5 to ground, the first layout traced
+  that touches XT5 without the antenna; harmless, since C10 floats at its other end.
+
 - **Device 27** «Двухтональный генератор» (p. 36): the same terminals as device 26. The electrolytic's
   − side and the кнопка's grounded side reach XT1 over the top strip, the supply reaches XT3 through
   a «Крест», the output 0,01 µF reaches XT4, and the antenna sits across XT5–XT6. The page also
@@ -263,6 +269,24 @@ confirmed pinouts of §4, and checked against each device's schematic:
   of block_009 explains the instruction. Turned as specified, the tee simply stands in for the
   3300 pF. Fitted as drawn, its joined corner reaches the top strip and grounds L2's return, as if
   the кнопка were always held.
+
+- **Devices 8** «Мультивибратор с низкой частотой» (p. 17) **and 15** «Генератор для изучения
+  азбуки Морзе с сигналом помех» (p. 24): the output capacitor sits on the right of row 5 (XT5), and
+  a wire module joins XT5 to XT4. Harmless — C10 hangs from XT5 to a floating XT6 — and it shows
+  the factory treating XT5 as a spare contact beside XT4 when the antenna is out.
+- **Device 13** «Звуковой генератор» (p. 22): its two outputs leave the panel on wires, «Выход 1»
+  from the left contact of row 4 and «Выход 2» from the *bottom* contact of the bottom-right cell,
+  with the common wire on the top strip. With no antenna in the slot, the bottom contacts of row 4
+  are free clip points, like the left edge.
+- **Device 28** «Генератор сигналов» (p. 37): device 26's oscillator with L2 straight to ground.
+  The layout carries a second 20 µF beside the one on the schematic.
+- **Device 29** «Метроном» (p. 38): the first layout that puts the collector, not the top of L1,
+  on XT5. The antenna's N6 tap reaches XT5 through a «Тройник», so C10 is across the long L1
+  section only, and 12 kΩ feeds the short section's far end through N2.
+- **Device 30** «Морзянка» (p. 39): device 28 with L2's return and the 680 pF keyed to ground by
+  the кнопка. The top of L1 also reaches N5, which the bar wires to N2, the confirmed N2–N5 link.
+  The кнопка is turned a quarter: N–S joined, W switched, consistent with the pinout device 24
+  settled.
 
 Every layout traced so far ties the top strip to XT1 with a module, so the strip is taken to be
 wired to nothing inside the case. The positions of XT2 and XT7 follow by sequence; no layout traced so
@@ -342,14 +366,14 @@ the whole field, and an explanatory paragraph.
 | 5 | 14 | Высокочастотный пробник | RF probe |
 | 6 | 15 | Мультивибратор | Astable multivibrator |
 | 7 | 16 | *(title obscured in scan)* | — |
-| 8 | 17 | Мультивибратор | Multivibrator (variant) |
+| 8 | 17 | Мультивибратор с низкой частотой колебаний | Slow multivibrator |
 | 9 | 18 | «Пищалка» | Squeaker |
 | 10 | 19 | Управляемый генератор | Gated oscillator |
 | 11 | 20 | «Сторож» | Liquid-level / leak guard |
 | 12 | 21 | «Сирена» | Siren |
 | 13 | 22 | Звуковой генератор | Audio generator (low-Z and high-Z outputs) |
 | 14 | 23 | Пробник с генератором | Probe with built-in oscillator |
-| 15 | 24 | Генератор | Oscillator |
+| 15 | 24 | Генератор для изучения азбуки Морзе с сигналом помех | Morse trainer with interference |
 | 16 | 25 | *(title obscured in scan)* | — |
 | 17 | 26 | Приемник по рефлексной схеме (средние и длинные волны) | Reflex MW/LW receiver |
 | 18 | 27 | Приемник со стабилизацией | Receiver with stabilised bias |
@@ -395,6 +419,13 @@ correctly built one oscillates at the frequency its own R and C dictate.
 
 The built-in amplifier is solved transistor by transistor too (§5.3), so the behavioural radio
 below is the one departure from first principles.
+
+Two things make multivibrators start and keep running, as they do in the kit. The field's
+capacitors start empty, as a module plugged into a powered case does. And a switching edge,
+which grows through the junction capacitances within nanoseconds, is followed in substeps: the
+sign of the step matrix's determinant shows when a step would otherwise settle on the unstable
+balance between the two states. The cost is that a multivibrator switching thousands of times a
+second (device 6) runs slower than real time.
 
 ### 7.3 What is behavioural, and why
 

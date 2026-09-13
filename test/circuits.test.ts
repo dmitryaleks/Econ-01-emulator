@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CIRCUITS, DEVICE_24, DEVICE_26, DEVICE_27, DEVICE_27_ALT, DEVICE_6, DEVICE_9, loadCircuit,
-  type Circuit,
+  CIRCUITS, DEVICE_12, DEVICE_13, DEVICE_15, DEVICE_24, DEVICE_26, DEVICE_27, DEVICE_27_ALT,
+  DEVICE_28, DEVICE_29, DEVICE_30, DEVICE_6, DEVICE_8, DEVICE_9, loadCircuit, type Circuit,
 } from '../src/circuits/index.js';
 import { windingSection } from '../src/model/antenna.js';
 import { Board } from '../src/model/board.js';
@@ -9,6 +9,7 @@ import { MODULE_BY_ID } from '../src/model/catalogue.js';
 import { ANTENNA_ROW, FIXED_NETS } from '../src/model/panel.js';
 import { buildNetlist, contactKey, type Netlist } from '../src/netlist/build.js';
 import { Simulation, dominantFrequency, rms } from '../src/sim/transient.js';
+import { matchSchematic } from './schematic.js';
 
 const FS = 96_000;
 
@@ -301,6 +302,208 @@ function elementTouches(e: Netlist['elements'][number], net: string): boolean {
 }
 
 /** Device 27's netlist checked part by part against the schematic on page 36, and its variant. */
+describe('slow multivibrator, device 8', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_8);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells with no lead', () => {
+    expect(board.placements.size).toBe(30);
+    expect(DEVICE_8.leads ?? []).toHaveLength(0);
+  });
+
+  it('is the schematic on page 17, spares aside', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN' },
+        parts: [
+          { kind: 'Q', b: 'B1', c: 'C1', e: 'GND' },
+          { kind: 'Q', b: 'B2', c: 'C2', e: 'GND' },
+          { kind: 'R', ohms: 2.2e3, a: 'VCC', b: 'C1' },
+          { kind: 'R', ohms: 12e3, a: 'VCC', b: 'B2' },
+          { kind: 'R', ohms: 680e3, a: 'VCC', b: 'B1' },
+          { kind: 'R', ohms: 68e3, a: 'VCC', b: 'B1' },
+          { kind: 'R', ohms: 2.2e3, a: 'VCC', b: 'C2' },
+          { kind: 'C', farads: 20e-6, a: 'C1', b: 'B2', polar: true },
+          { kind: 'C', farads: 20e-6, a: 'C2', b: 'B1', polar: true },
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'OUT' },
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'OUT' },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it('switches about once a second, the same at 12 and 48 кГц', () => {
+    const out = netlist.elements.find(
+      (e) => e.kind === 'C' && e.farads === 0.01e-6 && (e.a === 'AMP_IN' || e.b === 'AMP_IN'),
+    );
+    const c2 = out?.kind === 'C' ? (out.a === 'AMP_IN' ? out.b : out.a) : '';
+    const periods = [12_000, 48_000].map((fs) => {
+      const sim = new Simulation(netlist, fs);
+      const rising: number[] = [];
+      let was = sim.circuit.voltageAt(c2);
+      for (let i = 0; i < fs * 4; i++) {
+        sim.sample();
+        const v = sim.circuit.voltageAt(c2);
+        if (was < 4 && v >= 4) rising.push(i / fs);
+        was = v;
+      }
+      expect(rising.length, `${fs}: edges`).toBeGreaterThanOrEqual(3);
+      return (rising.at(-1)! - rising[0]!) / (rising.length - 1);
+    });
+    expect(periods[0]).toBeGreaterThan(0.8);
+    expect(periods[0]).toBeLessThan(1.4);
+    expect(Math.abs(periods[1]! - periods[0]!) / periods[0]!).toBeLessThan(0.02);
+  });
+});
+
+describe('«Сирена» device 12', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_12);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells with no lead', () => {
+    expect(board.placements.size).toBe(30);
+    expect(DEVICE_12.leads ?? []).toHaveLength(0);
+  });
+
+  it('is the schematic on page 21, spares aside', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN' },
+        parts: [
+          { kind: 'Q', b: 'B1', c: 'C1', e: 'E1' },
+          { kind: 'Q', b: 'B2', c: 'C2', e: 'GND' },
+          { kind: 'R', ohms: 68e3, a: 'VCC', b: 'B1' },
+          { kind: 'R', ohms: 12e3, a: 'VCC', b: 'C1' },
+          { kind: 'R', ohms: 1e6, a: 'VCC', b: 'B2' },
+          { kind: 'R', ohms: 2.2e3, a: 'VCC', b: 'C2' },
+          { kind: 'C', farads: 3300e-12, a: 'C1', b: 'B2' },
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'B1' },
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'OUT' },
+          { kind: 'C', farads: 20e-6, a: 'E1', b: 'GND', polar: true },
+          { kind: 'key', a: 'E1', b: 'GND' },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  /** Hold the кнопка for `held` seconds from the start, then let go; windows are after release. */
+  const run = (fs: number, held: number, windows: Array<[number, number]>) => {
+    const b = new Board();
+    loadCircuit(b, DEVICE_12);
+    b.controls.buttonDown = true;
+    const sim = new Simulation(buildNetlist(b), fs);
+    sim.run(Math.round(fs * held));
+    b.controls.buttonDown = false;
+    expect(sim.update(buildNetlist(b))).toBe(true);
+    const out: Array<{ level: number; freq: number }> = [];
+    let t = 0;
+    for (const [from, to] of windows) {
+      sim.run(Math.round(fs * (from - t)));
+      const { samples } = sim.run(Math.round(fs * (to - from)));
+      out.push({ level: rms(samples), freq: dominantFrequency(samples, fs) });
+      t = to;
+    }
+    return out;
+  };
+
+  it('let go, climbs in pitch, then dies away; the same at 24 and 48 кГц', () => {
+    for (const fs of [24_000, 48_000]) {
+      const [start, top, end] = run(fs, 0.3, [[0, 0.1], [0.35, 0.5], [2.2, 2.4]]);
+      expect(start!.level, `${fs}: sounding at release`).toBeGreaterThan(0.5);
+      expect(start!.freq, `${fs}: starts low`).toBeLessThan(700);
+      expect(top!.freq, `${fs}: climbs`).toBeGreaterThan(1.8 * start!.freq);
+      expect(end!.level, `${fs}: silent once charged`).toBeLessThan(0.02);
+    }
+  });
+});
+
+describe('«Звуковой генератор» device 13', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_13);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells; its output wires have loose ends and are not placed', () => {
+    expect(board.placements.size).toBe(30);
+    expect(DEVICE_13.leads ?? []).toHaveLength(0);
+  });
+
+  it('is the schematic on page 22, spares aside', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN' },
+        parts: [
+          { kind: 'Q', b: 'B1', c: 'P', e: 'E1' },
+          { kind: 'Q', b: 'B2', c: 'C2', e: 'GND' },
+          { kind: 'R', ohms: 68e3, a: 'VCC', b: 'P' },
+          { kind: 'R', ohms: 1e6, a: 'P', b: 'B1' },
+          { kind: 'R', ohms: 2.2e3, a: 'E1', b: 'GND' },
+          { kind: 'C', farads: 680e-12, a: 'P', b: 'B2' },
+          { kind: 'R', ohms: 1e6, a: 'VCC', b: 'B2' },
+          { kind: 'R', ohms: 12e3, a: 'VCC', b: 'C2' },
+          { kind: 'C', farads: 3300e-12, a: 'C2', b: 'B1' },
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'OUT' },
+          // «Выход 2» and «Выход 1», whose wires leave the panel.
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'OUT2' },
+          { kind: 'C', farads: 0.01e-6, a: 'E1', b: 'OUT1' },
+          { kind: 'C', farads: 20e-6, a: 'VCC', b: 'GND', polar: true },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it('brings «Выход 1» to the left contact of row 4 and «Выход 2» to the bottom of (5,4)', () => {
+    const caps = netlist.elements.filter((e) => e.kind === 'C' && e.farads === 0.01e-6);
+    const touches = (net: string | undefined) =>
+      caps.some((e) => e.kind === 'C' && (e.a === net || e.b === net));
+    expect(touches(netlist.contactNet.get(contactKey({ col: 0, row: 3 }, 'W')))).toBe(true);
+    expect(touches(netlist.contactNet.get(contactKey({ col: 5, row: 4 }, 'S')))).toBe(true);
+  });
+});
+
+describe('Morse generator with interference, device 15', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_15);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells with no lead', () => {
+    expect(board.placements.size).toBe(30);
+    expect(DEVICE_15.leads ?? []).toHaveLength(0);
+  });
+
+  it('is the schematic on page 24, spares aside', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN' },
+        parts: [
+          { kind: 'Q', b: 'B1', c: 'C1', e: 'GND' },
+          { kind: 'Q', b: 'B2', c: 'C2', e: 'GND' },
+          { kind: 'R', ohms: 2.2e3, a: 'VCC', b: 'C1' },
+          { kind: 'R', ohms: 680e3, a: 'VCC', b: 'B1' },
+          { kind: 'R', ohms: 1e6, a: 'VCC', b: 'B2' },
+          { kind: 'R', ohms: 2.2e3, a: 'VCC', b: 'C2' },
+          { kind: 'C', farads: 680e-12, a: 'C1', b: 'B2' },
+          { kind: 'C', farads: 0.01e-6, a: 'C2', b: 'B1' },
+          { kind: 'C', farads: 3300e-12, a: 'C2', b: 'OUT' },
+          { kind: 'C', farads: 0.01e-6, a: 'C1', b: 'K' },
+          { kind: 'key', a: 'K', b: 'B2' },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it('keeps its pitch, released and held, from 24 to 96 кГц', () => {
+    const at = (fs: number, button: boolean) => measure(DEVICE_15, { fs, button });
+    for (const button of [false, true]) {
+      const ref = at(96_000, button).freq;
+      for (const fs of [24_000, 48_000]) {
+        expect(Math.abs(at(fs, button).freq - ref) / ref, `${fs}, held ${button}`).toBeLessThan(0.08);
+      }
+    }
+  });
+});
+
 describe('«Двухтональный генератор» device 27 matches the factory schematic', () => {
   const board = new Board();
   loadCircuit(board, DEVICE_27);
@@ -384,6 +587,118 @@ describe('«Двухтональный генератор» device 27 matches th
 });
 
 /** Device 24's netlist checked part by part against the schematic on page 33, and its timing. */
+describe('«Генератор сигналов» device 28', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_28);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells, with the antenna in its slot', () => {
+    expect(board.placements.size).toBe(31);
+    expect(board.placements.get(`0,${ANTENNA_ROW}`)?.moduleId).toBe('block_019');
+    expect(DEVICE_28.leads ?? []).toHaveLength(0);
+  });
+
+  it('is the schematic on page 37, spares aside', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN' },
+        parts: [
+          { kind: 'antenna', top: 'T', tap: 'X', end: 'Y', l2a: 'GND', l2b: 'E' },
+          { kind: 'Q', b: 'B', c: 'X', e: 'E' },
+          { kind: 'R', ohms: 12e3, a: 'VCC', b: 'T' },
+          { kind: 'C', farads: 0.01e-6, a: 'T', b: 'OUT' },
+          { kind: 'R', ohms: 1e6, a: 'VCC', b: 'N1' },
+          { kind: 'R', ohms: 1e6, a: 'N1', b: 'N2' },
+          { kind: 'R', ohms: 680e3, a: 'N2', b: 'B' },
+          { kind: 'C', farads: 680e-12, a: 'B', b: 'GND' },
+          { kind: 'C', farads: 20e-6, a: 'VCC', b: 'GND', polar: true },
+          // Not on the schematic: a second 20 мкФ beside the first.
+          { kind: 'C', farads: 20e-6, a: 'VCC', b: 'GND', polar: true },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it('squegs at the same rate at 24 and 48 кГц', () => {
+    const at24 = measure(DEVICE_28, { fs: 24_000 });
+    const at48 = measure(DEVICE_28, { fs: 48_000 });
+    expect(at24.level).toBeGreaterThan(0.5);
+    expect(Math.abs(at24.freq - at48.freq) / at48.freq).toBeLessThan(0.03);
+  });
+});
+
+describe('«Метроном» device 29', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_29);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells, with the antenna in its slot', () => {
+    expect(board.placements.size).toBe(31);
+    expect(board.placements.get(`0,${ANTENNA_ROW}`)?.moduleId).toBe('block_019');
+  });
+
+  it('is the schematic on page 38, spares aside: C10 across the long section only', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN', TAP: FIXED_NETS.C10_A },
+        parts: [
+          { kind: 'antenna', top: 'T', tap: 'TAP', end: 'Y', l2a: 'GND', l2b: 'E' },
+          { kind: 'Q', b: 'B', c: 'TAP', e: 'E' },
+          { kind: 'R', ohms: 12e3, a: 'VCC', b: 'T' },
+          { kind: 'C', farads: 0.01e-6, a: 'T', b: 'OUT' },
+          { kind: 'R', ohms: 680e3, a: 'VCC', b: 'B' },
+          { kind: 'C', farads: 20e-6, a: 'B', b: 'M', polar: true },
+          { kind: 'C', farads: 20e-6, a: 'M', b: 'GND', polar: true },
+        ],
+      }),
+    ).toEqual([]);
+    expect(netlist.antenna!.tuned[1]).toBe(FIXED_NETS.C10_B);
+  });
+
+  it('ticks roughly twelve times a second', () => {
+    const fs = 24_000;
+    const sim = new Simulation(netlist, fs);
+    const ticks: number[] = [];
+    for (let i = 0; i < fs * 1.5; i++) {
+      const s = sim.sample();
+      if (Math.abs(s) > 1 && (ticks.length === 0 || i / fs - ticks.at(-1)! > 0.03)) ticks.push(i / fs);
+    }
+    expect(ticks.length).toBeGreaterThan(10);
+    expect(ticks.length).toBeLessThan(25);
+  });
+});
+
+describe('«Морзянка» device 30', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_30);
+  const netlist = buildNetlist(board);
+
+  it('fills all 30 cells, with the antenna in its slot', () => {
+    expect(board.placements.size).toBe(31);
+    expect(board.placements.get(`0,${ANTENNA_ROW}`)?.moduleId).toBe('block_019');
+  });
+
+  it('is the schematic on page 39, spares aside', () => {
+    expect(
+      matchSchematic(netlist, {
+        fixed: { GND: netlist.ground, VCC: 'VCC', OUT: 'AMP_IN' },
+        parts: [
+          { kind: 'antenna', top: 'T', tap: 'X', end: 'Y', l2a: 'K', l2b: 'E' },
+          { kind: 'Q', b: 'B', c: 'X', e: 'E' },
+          { kind: 'R', ohms: 12e3, a: 'VCC', b: 'T' },
+          { kind: 'C', farads: 0.01e-6, a: 'T', b: 'OUT' },
+          { kind: 'R', ohms: 1e6, a: 'VCC', b: 'N1' },
+          { kind: 'R', ohms: 1e6, a: 'N1', b: 'N2' },
+          { kind: 'R', ohms: 680e3, a: 'N2', b: 'B' },
+          { kind: 'C', farads: 680e-12, a: 'B', b: 'K' },
+          { kind: 'key', a: 'K', b: 'GND' },
+          { kind: 'C', farads: 20e-6, a: 'VCC', b: 'GND', polar: true },
+        ],
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe('«Реле времени» device 24 matches the factory schematic', () => {
   const board = new Board();
   loadCircuit(board, DEVICE_24);
@@ -480,7 +795,7 @@ describe('presets the solver can run', () => {
       if (e.gatedByButton) {
         expect(measure(circuit, { button: false }).level, 'with the кнопка up').toBeLessThan(0.02);
       }
-      const base = measure(circuit, e.gatedByButton ? { button: true } : {});
+      const base = measure(circuit, e.gatedByButton || e.whileHeld ? { button: true } : {});
 
       if (e.silent) {
         expect(base.level).toBeLessThan(0.02);

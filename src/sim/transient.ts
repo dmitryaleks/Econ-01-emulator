@@ -26,6 +26,7 @@ export class Simulation {
     const c10 = netlist.elements.find((e) => e.name === 'C10');
     this.radio.retune(c10 && c10.kind === 'C' ? c10.farads : 0);
     this.circuit.dcOperatingPoint();
+    this.circuit.dischargeModules(netlist);
   }
 
   /** Radio tuning state, for the UI dial. */

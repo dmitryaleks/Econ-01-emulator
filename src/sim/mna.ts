@@ -25,6 +25,8 @@ export interface SolveOptions {
 
 /** Saturation current of the emitter-base breakdown junction: a sharp knee at bv. [G] */
 const BREAKDOWN_IS = 1e-12;
+/** Volts short of breakdown below which the breakdown junction is left out: under 1e-17 A. */
+const BREAKDOWN_IDLE = -0.4;
 /** A step whose ln A would move further than this is run as a burst instead. */
 const MAX_LOG_STEP = 1.5;
 /**
@@ -54,6 +56,32 @@ const LOG_TOL = 1e-4;
 /** First stride of the search away from the previous ln A, doubling while it finds no root. */
 const FIRST_STRIDE = 0.25;
 const MAX_SEARCH = 60;
+/**
+ * Substeps of a step that switches: the first is this fraction of the step, each retry divides by
+ * SUBSTEP_SHRINK, and none is shorter than MIN_SUBSTEP.
+ */
+const FIRST_SUBSTEP = 8;
+const SUBSTEP_SHRINK = 4;
+const MIN_SUBSTEP = 1e-12;
+/** A step gives up refining after this many substeps. */
+const MAX_SUBSTEPS = 4000;
+/**
+ * A step across which a junction voltage's slope bends by more than BEND_VOLT_SECONDS divided by
+ * the step is taken again in substeps: 1 V at 48 кГц, 0,5 V at 24 кГц. One coarse step can
+ * otherwise smear a switching edge, or a pulse shorter than the step, and move the pitch with the
+ * sample rate — device 15's pulse lasts 18 мкс.
+ */
+const BEND_VOLT_SECONDS = 1 / 48_000;
+/** A substep covers at most this fraction of the time the circuit's pace takes to grow e-fold. */
+const GROWTH_FRACTION = 0.3;
+/** Volts a substep's starting guess may be carried ahead of where the last one ended. */
+const PREDICT_LIMIT = 1;
+/**
+ * Newton iterations allowed a solve that a shorter step can stand in for. One that has not
+ * converged by then is usually a step across a switching edge, which no number of iterations
+ * rescues.
+ */
+const TRIAL_ITERATIONS = 10;
 
 export const DEFAULT_OPTIONS: SolveOptions = {
   gmin: 1e-12,
@@ -119,8 +147,37 @@ export class Circuit {
   private steadyFor = 0;
 
   private readonly m: Matrix;
+  /**
+   * Where each element's entries sit in the matrix (see `layout`), -1 for ground: conductances
+   * as [aa, bb, ab, ba], an inductor or source's branch as [a·br, b·br, br·a, br·b(, br·br)], a
+   * transistor as [BB, BE, BC, CB, CE, CC, EB, EE, EC].
+   */
+  private resSlots!: Int32Array;
+  private capSlots!: Int32Array;
+  private indSlots!: Int32Array;
+  private mutualSlots!: Int32Array;
+  private srcSlots!: Int32Array;
+  private gminSlots!: Int32Array;
+  private diodeSlots!: Int32Array;
+  private bjtSlots!: Int32Array;
+  /**
+   * The resistors', capacitors', inductors' and sources' part of the matrix, which Newton's
+   * iterations do not change: its entries, and the step, gmin and element values it was made for.
+   */
+  private linearSlots!: Int32Array;
+  private readonly linear: Float64Array;
+  private linearH = NaN;
+  private linearDc = false;
+  private linearGmin = NaN;
+  private linearVersion = -1;
+  /** Bumped whenever element values change. */
+  private version = 0;
+  /** Their part of the right-hand side, for the solve in hand. */
+  private readonly rhs: Float64Array;
   private readonly x: Float64Array;
   private readonly xPrev: Float64Array;
+  /** How fast each unknown moved over the last step or substep, per second. */
+  private readonly rate: Float64Array;
   private readonly opts: SolveOptions;
   private h = 1 / 48000;
   private gminNow: number;
@@ -156,6 +213,7 @@ export class Circuit {
 
     const needBranch: Array<(i: number) => void> = [];
     const items: RfItem[] = [];
+    const junctionCaps: CapState[] = [];
     const inductorByName = new Map<string, IndState>();
 
     for (const el of netlist.elements) {
@@ -223,6 +281,10 @@ export class Circuit {
           };
           this.bjts.push(st);
           items.push({ el, st });
+          junctionCaps.push(
+            { a: st.base, b: st.emitter, farads: mdl.cje, vPrev: 0 },
+            { a: st.base, b: st.collector, farads: mdl.cjc, vPrev: 0 },
+          );
           break;
         }
         case 'V': {
@@ -251,10 +313,18 @@ export class Circuit {
     let branch = 0;
     for (const set of needBranch) set(next + branch++);
     this.rf = new RfNetwork(netlist, items);
+    // Junction capacitances only matter inside a switching edge, which only boards without the
+    // antenna resolve (see `advance`). After the netlist's own capacitors, so `updateValues` still
+    // finds those by position.
+    if (!this.rf.enabled) this.caps.push(...junctionCaps);
     this.unknowns = Math.max(next + branch, 1);
     this.m = new Matrix(this.unknowns);
+    this.linear = new Float64Array(this.unknowns * this.unknowns);
+    this.rhs = new Float64Array(this.unknowns);
+    this.layout();
     this.x = new Float64Array(this.unknowns);
     this.xPrev = new Float64Array(this.unknowns);
+    this.rate = new Float64Array(this.unknowns);
     this.saved = this.newSave();
 
     this.good = this.newSave();
@@ -280,6 +350,7 @@ export class Circuit {
       else if (el.kind === 'C') this.caps[c++]!.farads = el.farads;
       else if (el.kind === 'V') this.srcs[v++]!.volts = el.volts;
     }
+    this.version++;
     this.rf.retune();
     return true;
   }
@@ -340,6 +411,23 @@ export class Circuit {
   }
 
   /**
+   * Start the field's capacitors empty. A module is plugged into a case that is already on, so its
+   * capacitors charge from nothing while the amplifier sits at its operating point. It matters: a
+   * multivibrator's operating point is a stable state too, both transistors saturated, and a real
+   * one leaves it only because its capacitors charge unevenly as it is powered. Boards with the
+   * antenna keep the operating point, which the RF envelope starts from.
+   */
+  dischargeModules(netlist: Netlist): void {
+    if (this.rf.enabled) return;
+    let c = 0;
+    for (const el of netlist.elements) {
+      if (el.kind !== 'C') continue;
+      if (el.name.includes('@')) this.caps[c]!.vPrev = 0;
+      c++;
+    }
+  }
+
+  /**
    * Advance one timestep. While the RF amplitude holds steady, drifts or rings down, an implicit
    * step with the amplitude searched for does; while an oscillator's transistor drives the tank
    * into a burst, the RF piece runs as a transient until the tank rings down on its own again.
@@ -347,8 +435,7 @@ export class Circuit {
   step(): void {
     const h = this.h;
     if (!this.rf.enabled) {
-      this.converged = this.newton(false);
-      this.commit();
+      this.converged = this.advance(h);
       return;
     }
     if (!this.bursting) {
@@ -385,6 +472,120 @@ export class Circuit {
     }
     this.converged = this.burstStep();
     this.h = h;
+  }
+
+  /**
+   * Cover a step of a board without the antenna. Almost always one solve does. But a
+   * multivibrator's switching edge is regenerative: its transistors feed each other faster than any
+   * step at an audio rate, and backward Euler damps a mode growing that fast instead of following
+   * it — the solve settles on the unstable balance between the two states, and the circuit stalls
+   * there. Such a solve shows itself in the sign of the matrix's determinant (see `unstable`), so
+   * the step is then covered in substeps short enough to follow the edge, down to the time scale
+   * of the junction capacitances, and growing again once it has passed. So is a step whose
+   * junctions bend sharply (see `bend`), which at a low rate is an edge the step jumped over.
+   */
+  private advance(h: number): boolean {
+    const start = this.saved;
+    this.saveInto(start);
+    if (this.newton(false, true) && this.bend(start, h) < BEND_VOLT_SECONDS / h) {
+      this.track(start, h);
+      this.commit();
+      return true;
+    }
+    this.load(start);
+    let ok = true;
+    let left = h;
+    let dt = h / FIRST_SUBSTEP;
+    let speed = this.speed();
+    let lastSpan = h;
+    for (let n = 0; left > 0; n++) {
+      // A remainder shorter than half a substep joins it.
+      const last = dt * 1.5 >= left;
+      const span = last ? left : dt;
+      this.h = span;
+      this.saveInto(start);
+      this.predict(span);
+      if (this.newton(false, true)) {
+        this.track(start, span);
+        this.commit();
+        left -= span;
+        const it = this.lastIterations;
+        dt = span * (it <= 3 ? 2 : it <= 5 ? 1.25 : 1);
+        // While the circuit speeds up exponentially, keep a substep well inside its growth time.
+        const now = this.speed();
+        if (speed > 0 && now > speed) {
+          const lambda = Math.log(now / speed) / (0.5 * (span + lastSpan));
+          dt = Math.min(dt, GROWTH_FRACTION / lambda);
+        }
+        speed = now;
+        lastSpan = span;
+        continue;
+      }
+      this.load(start);
+      if (dt > MIN_SUBSTEP && n < MAX_SUBSTEPS) {
+        dt = span / SUBSTEP_SHRINK;
+        continue;
+      }
+      // Nothing shorter follows it either: take the best solve there is.
+      ok &&= this.newton(false);
+      this.track(start, span);
+      this.commit();
+      left -= span;
+    }
+    this.h = h;
+    return ok;
+  }
+
+  /** The rate each unknown moved at over the step just solved from `from`. */
+  private track(from: Float64Array, span: number): void {
+    const rate = this.rate;
+    for (let i = 0; i < this.unknowns; i++) rate[i] = (this.x[i]! - from[i]!) / span;
+  }
+
+  /**
+   * How far the step just solved from `from` strays from carrying on at the last step's rate: the
+   * largest change in a junction voltage's slope, in volts over the step. Junctions, not nodes: an
+   * amplifier's output may bend by volts on a smooth signal while its junctions barely move.
+   */
+  private bend(from: Float64Array, span: number): number {
+    const { x, rate } = this;
+    const at = (v: Float64Array, i: number): number => (i < 0 ? 0 : v[i]!);
+    const across = (p: number, n: number): number => Math.abs(
+      at(x, p) - at(x, n) - (at(from, p) - at(from, n)) - (at(rate, p) - at(rate, n)) * span,
+    );
+    let largest = 0;
+    for (const q of this.bjts) {
+      largest = Math.max(largest, across(q.base, q.emitter), across(q.base, q.collector));
+    }
+    for (const d of this.diodes) largest = Math.max(largest, across(d.anode, d.cathode));
+    return largest;
+  }
+
+  /** The fastest a node voltage moved over the last step or substep, volts per second. */
+  private speed(): number {
+    let fastest = 0;
+    for (let i = 0; i < this.nodeCount; i++) fastest = Math.max(fastest, Math.abs(this.rate[i]!));
+    return fastest;
+  }
+
+  /** Start a substep's Newton from the unknowns carried on at their last rate, a volt at most. */
+  private predict(span: number): void {
+    for (let i = 0; i < this.unknowns; i++) {
+      const move = this.rate[i]! * span;
+      this.x[i]! += Math.max(-PREDICT_LIMIT, Math.min(PREDICT_LIMIT, move));
+    }
+  }
+
+  /**
+   * Whether the matrix last factorised has a mode growing faster than the step can follow. The
+   * determinant of G + C/h is a product over the circuit's natural frequencies λ of (1/h − λ),
+   * times a constant fixed by its branches: each voltage source or inductor row turns the sign
+   * once. A decaying mode, or a pair of them, never changes the sign; a real mode growing with
+   * hλ > 1 does. The edges of the regenerative switching are such modes.
+   */
+  private unstable(): boolean {
+    const branches = this.unknowns - this.nodeCount;
+    return this.m.detSign !== (branches % 2 ? -1 : 1);
   }
 
   /** Every LOOKAHEAD_SECONDS, let the RF transient confirm the oscillation is still steady. */
@@ -448,10 +649,17 @@ export class Circuit {
     this.bursting = true;
   }
 
-  /** One step with the RF piece's junctions replaced by the transient's average currents. */
+  /**
+   * One step with the RF piece's junctions replaced by the transient's average currents. When the
+   * tank rings down part way through, that part is solved with the burst's currents and the rest
+   * of the step goes back to the envelope, so a burst costs its few cycles however long the step.
+   */
   private burstStep(): boolean {
     const burst = this.burst!;
-    const ran = burst.run(this.h, (net) => this.voltageAt(net));
+    const h = this.h;
+    const spent = burst.run(h, (net) => this.voltageAt(net));
+    const rest = h - spent;
+    if (rest > 0) this.h = spent;
     const solved = this.newton(false);
     const a = Math.max(burst.amplitude, Number.MIN_VALUE);
     this.y = Math.max(LOG_FLOOR, Math.min(LOG_CEIL, Math.log(a)));
@@ -475,7 +683,14 @@ export class Circuit {
         d.vPrev = this.v(d.anode) - this.v(d.cathode) + d.nvt * logI0(d.kD * swing);
       }
     }
-    return ran && solved;
+    let ok = burst.converged && solved;
+    if (rest > 0 && !this.bursting) {
+      this.h = rest;
+      this.step();
+      ok = ok && this.converged;
+    }
+    this.h = h;
+    return ok;
   }
 
   /**
@@ -597,8 +812,132 @@ export class Circuit {
     for (const d of this.diodes) d.vPrev = buf[k++]!;
   }
 
-  private newton(dc: boolean): boolean {
-    const { reltol, abstol, maxIterations } = this.opts;
+  /** Fix every element's matrix positions, so the plan never meets a new entry mid-run. */
+  private layout(): void {
+    const m = this.m;
+    const pair = (out: Int32Array, at: number, a: number, b: number): void => {
+      out[at] = m.slot(a, a);
+      out[at + 1] = m.slot(b, b);
+      out[at + 2] = m.slot(a, b);
+      out[at + 3] = m.slot(b, a);
+    };
+    this.gminSlots = Int32Array.from({ length: this.nodeCount }, (_, i) => m.slot(i, i));
+    this.resSlots = new Int32Array(4 * this.res.length);
+    this.res.forEach((r, i) => pair(this.resSlots, 4 * i, r.a, r.b));
+    this.capSlots = new Int32Array(4 * this.caps.length);
+    this.caps.forEach((c, i) => pair(this.capSlots, 4 * i, c.a, c.b));
+    this.indSlots = new Int32Array(5 * this.inds.length);
+    const mutual: number[] = [];
+    this.inds.forEach((l, i) => {
+      const br = l.branch;
+      this.indSlots.set(
+        [m.slot(l.a, br), m.slot(l.b, br), m.slot(br, l.a), m.slot(br, l.b), m.slot(br, br)],
+        5 * i,
+      );
+      for (const { other } of l.mutual) mutual.push(m.slot(br, other.branch));
+    });
+    this.mutualSlots = Int32Array.from(mutual);
+    this.srcSlots = new Int32Array(4 * this.srcs.length);
+    this.srcs.forEach((src, i) => {
+      const br = src.branch;
+      this.srcSlots.set(
+        [m.slot(src.p, br), m.slot(src.n, br), m.slot(br, src.p), m.slot(br, src.n)],
+        4 * i,
+      );
+    });
+    this.diodeSlots = new Int32Array(4 * this.diodes.length);
+    this.diodes.forEach((d, i) => pair(this.diodeSlots, 4 * i, d.anode, d.cathode));
+    this.bjtSlots = new Int32Array(9 * this.bjts.length);
+    this.bjts.forEach((q, i) => {
+      const [B, C, E] = [q.base, q.collector, q.emitter];
+      this.bjtSlots.set(
+        [m.slot(B, B), m.slot(B, E), m.slot(B, C), m.slot(C, B), m.slot(C, E), m.slot(C, C),
+          m.slot(E, B), m.slot(E, E), m.slot(E, C)],
+        9 * i,
+      );
+    });
+
+    const linear = new Set<number>();
+    for (const set of [this.gminSlots, this.resSlots, this.capSlots, this.indSlots,
+      this.mutualSlots, this.srcSlots]) {
+      for (const k of set) if (k >= 0) linear.add(k);
+    }
+    this.linearSlots = Int32Array.from(linear);
+  }
+
+  /** Make the linear elements' part of the matrix for this step, unless it is made already. */
+  private buildLinear(dc: boolean): void {
+    if (
+      this.linearH === this.h && this.linearDc === dc && this.linearGmin === this.gminNow &&
+      this.linearVersion === this.version
+    ) return;
+    this.linearH = this.h;
+    this.linearDc = dc;
+    this.linearGmin = this.gminNow;
+    this.linearVersion = this.version;
+
+    const L = this.linear;
+    for (const k of this.linearSlots) L[k] = 0;
+    const conduct = (slots: Int32Array, at: number, g: number): void => {
+      put(L, slots[at]!, g);
+      put(L, slots[at + 1]!, g);
+      put(L, slots[at + 2]!, -g);
+      put(L, slots[at + 3]!, -g);
+    };
+    for (const k of this.gminSlots) put(L, k, this.gminNow);
+    this.res.forEach((r, i) => conduct(this.resSlots, 4 * i, r.g));
+    if (!dc) this.caps.forEach((c, i) => conduct(this.capSlots, 4 * i, c.farads / this.h));
+    // v(a) − v(b) − (L/h + esr)·i − Σ(M/h)·i_other = −(L/h)·i_prev − Σ(M/h)·i_other,prev,
+    // with 1/h = 0 at DC (a short).
+    const k = dc ? 0 : 1 / this.h;
+    let mi = 0;
+    this.inds.forEach((l, i) => {
+      const at = 5 * i;
+      put(L, this.indSlots[at]!, 1);
+      put(L, this.indSlots[at + 1]!, -1);
+      put(L, this.indSlots[at + 2]!, 1);
+      put(L, this.indSlots[at + 3]!, -1);
+      put(L, this.indSlots[at + 4]!, -(k * l.henries + l.esr));
+      for (const { henries } of l.mutual) put(L, this.mutualSlots[mi++]!, -k * henries);
+    });
+    this.srcs.forEach((_, i) => {
+      const at = 4 * i;
+      put(L, this.srcSlots[at]!, 1);
+      put(L, this.srcSlots[at + 1]!, -1);
+      put(L, this.srcSlots[at + 2]!, 1);
+      put(L, this.srcSlots[at + 3]!, -1);
+    });
+  }
+
+  /** The linear elements' part of the right-hand side: capacitor and inductor history, sources. */
+  private buildRhs(dc: boolean): void {
+    const r = this.rhs;
+    r.fill(0);
+    if (!dc) {
+      for (const c of this.caps) {
+        const ieq = (c.farads / this.h) * c.vPrev;
+        if (c.a >= 0) r[c.a]! += ieq;
+        if (c.b >= 0) r[c.b]! -= ieq;
+      }
+    }
+    const k = dc ? 0 : 1 / this.h;
+    for (const l of this.inds) {
+      r[l.branch]! -= k * l.henries * l.iPrev;
+      for (const { other, henries } of l.mutual) r[l.branch]! -= k * henries * other.iPrev;
+    }
+    for (const src of this.srcs) r[src.branch]! += src.volts;
+  }
+
+  /**
+   * `trial`: a solve a shorter step can stand in for, so give up on it early — as soon as an
+   * iteration's linearisation is unstable (see `unstable`), and after TRIAL_ITERATIONS. A trial
+   * solve that converges is stable.
+   */
+  private newton(dc: boolean, trial = false): boolean {
+    const { reltol, abstol } = this.opts;
+    const maxIterations = trial ? TRIAL_ITERATIONS : this.opts.maxIterations;
+    this.buildLinear(dc);
+    this.buildRhs(dc);
 
     for (let iter = 0; iter < maxIterations; iter++) {
       this.xPrev.set(this.x);
@@ -609,6 +948,7 @@ export class Circuit {
       if (!sol) return false;
       this.x.set(sol);
 
+      if (trial && this.unstable()) return false;
       if (iter === 0) continue;
       let done = true;
       for (let i = 0; i < this.unknowns; i++) {
@@ -638,56 +978,22 @@ export class Circuit {
 
   private stamp(dc: boolean): void {
     const m = this.m;
+    const A = m.a;
+    const L = this.linear;
     m.clear();
-
-    for (let i = 0; i < this.nodeCount; i++) m.add(i, i, this.gminNow);
-
-    for (const r of this.res) conductance(m, r.a, r.b, r.g);
-
-    if (!dc) {
-      for (const c of this.caps) {
-        const geq = c.farads / this.h;
-        const ieq = geq * c.vPrev;
-        conductance(m, c.a, c.b, geq);
-        m.addRhs(c.a, ieq);
-        m.addRhs(c.b, -ieq);
-      }
-    }
-
-    for (const l of this.inds) {
-      // v(a) − v(b) − (L/h + esr)·i − Σ(M/h)·i_other = −(L/h)·i_prev − Σ(M/h)·i_other,prev,
-      // with 1/h = 0 at DC (a short).
-      const k = dc ? 0 : 1 / this.h;
-      const br = l.branch;
-      m.add(l.a, br, 1);
-      m.add(l.b, br, -1);
-      m.add(br, l.a, 1);
-      m.add(br, l.b, -1);
-      m.add(br, br, -(k * l.henries + l.esr));
-      m.addRhs(br, -k * l.henries * l.iPrev);
-      for (const { other, henries } of l.mutual) {
-        m.add(br, other.branch, -k * henries);
-        m.addRhs(br, -k * henries * other.iPrev);
-      }
-    }
-
-    for (const s of this.srcs) {
-      const br = s.branch;
-      m.add(s.p, br, 1);
-      m.add(s.n, br, -1);
-      m.add(br, s.p, 1);
-      m.add(br, s.n, -1);
-      m.addRhs(br, s.volts);
-    }
+    for (const k of this.linearSlots) A[k] = L[k]!;
+    m.b.set(this.rhs);
 
     // The RF swing the junctions see, held through this solve.
     const swing = dc || !this.rf.enabled ? 0 : this.rf.swing(this.y);
 
-    for (const d of this.diodes) {
+    const slots = this.diodeSlots;
+    for (let i = 0; i < this.diodes.length; i++) {
+      const d = this.diodes[i]!;
       if (this.bursting && d.burst >= 0) {
-        const i = this.burst!.anode[d.burst]!;
-        m.addRhs(d.anode, -i);
-        m.addRhs(d.cathode, i);
+        const cur = this.burst!.anode[d.burst]!;
+        m.addRhs(d.anode, -cur);
+        m.addRhs(d.cathode, cur);
         continue;
       }
       // An RF swing a raises the junction's average current by I0(a); limit the shifted voltage.
@@ -701,12 +1007,16 @@ export class Circuit {
       const id = d.is * (ex - 1);
       const gd = (d.is / d.nvt) * ex + this.gminNow;
       const ieq = id - gd * vd;
-      conductance(m, d.anode, d.cathode, gd);
+      const at = 4 * i;
+      put(A, slots[at]!, gd);
+      put(A, slots[at + 1]!, gd);
+      put(A, slots[at + 2]!, -gd);
+      put(A, slots[at + 3]!, -gd);
       m.addRhs(d.anode, -ieq);
       m.addRhs(d.cathode, ieq);
     }
 
-    for (const q of this.bjts) this.stampBjt(m, q, swing);
+    for (let i = 0; i < this.bjts.length; i++) this.stampBjt(m, this.bjts[i]!, 9 * i, swing);
 
     for (const [net, amps] of this.injections) {
       const i = this.nodeIndex.get(net);
@@ -720,7 +1030,7 @@ export class Circuit {
    * flips the sign of the equivalent current sources. An RF swing across a junction raises its
    * average current by I0(a).
    */
-  private stampBjt(m: Matrix, q: BjtState, swing: number): void {
+  private stampBjt(m: Matrix, q: BjtState, at: number, swing: number): void {
     const s = q.sign;
     const B = q.base;
     const C = q.collector;
@@ -761,47 +1071,54 @@ export class Circuit {
     const ieqC = ic - gm * vbe + (go + gmu) * vbc;
     const ieqE = -(ieqB + ieqC);
 
-    m.add(B, B, gpi + gmu);
-    m.add(B, E, -gpi);
-    m.add(B, C, -gmu);
+    const A = m.a;
+    const sl = this.bjtSlots;
+    const bb = sl[at]!;
+    const be = sl[at + 1]!;
+    const eb = sl[at + 6]!;
+    const ee = sl[at + 7]!;
+    put(A, bb, gpi + gmu);
+    put(A, be, -gpi);
+    put(A, sl[at + 2]!, -gmu);
 
-    m.add(C, B, gm - go - gmu);
-    m.add(C, E, -gm);
-    m.add(C, C, go + gmu);
+    put(A, sl[at + 3]!, gm - go - gmu);
+    put(A, sl[at + 4]!, -gm);
+    put(A, sl[at + 5]!, go + gmu);
 
-    m.add(E, B, -gpi - gm + go);
-    m.add(E, E, gpi + gm);
-    m.add(E, C, -go);
+    put(A, eb, -gpi - gm + go);
+    put(A, ee, gpi + gm);
+    put(A, sl[at + 8]!, -go);
 
     m.addRhs(B, -s * ieqB);
     m.addRhs(C, -s * ieqC);
     m.addRhs(E, -s * ieqE);
 
     // Emitter-base breakdown: a junction from emitter to base that conducts once the base is
-    // driven more than bv below the emitter. It shares the emitter junction's RF swing.
-    const pkBd = this.limit(
-      s * (this.v(E) - this.v(B)) - q.bv + shiftF, q.vbdPrev, VT, q.vcritBd,
-    );
+    // driven more than bv below the emitter. It shares the emitter junction's RF swing. Well short
+    // of breakdown it carries nothing worth a stamp, and needs no limiting.
+    const reverse = s * (this.v(E) - this.v(B)) - q.bv + shiftF;
+    if (reverse < BREAKDOWN_IDLE && q.vbdPrev < BREAKDOWN_IDLE) {
+      q.vbdPrev = reverse;
+      return;
+    }
+    const pkBd = this.limit(reverse, q.vbdPrev, VT, q.vcritBd);
     q.vbdPrev = pkBd;
     const vr = pkBd - shiftF;
     const exBd = Math.exp(Math.min(pkBd / VT, 60));
     const ibd = q.isBd * exBd;
     const gbd = (q.isBd / VT) * exBd;
     const ieqBd = ibd - gbd * (vr + q.bv);
-    m.add(E, E, gbd);
-    m.add(B, B, gbd);
-    m.add(E, B, -gbd);
-    m.add(B, E, -gbd);
+    put(A, ee, gbd);
+    put(A, bb, gbd);
+    put(A, eb, -gbd);
+    put(A, be, -gbd);
     m.addRhs(E, -s * ieqBd);
     m.addRhs(B, s * ieqBd);
   }
 }
 
-function conductance(m: Matrix, a: number, b: number, g: number): void {
-  m.add(a, a, g);
-  m.add(b, b, g);
-  m.add(a, b, -g);
-  m.add(b, a, -g);
+function put(a: Float64Array, slot: number, value: number): void {
+  if (slot >= 0) a[slot]! += value;
 }
 
 /** A netlist's elements and the nets between them, without their values. */

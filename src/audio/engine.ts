@@ -19,10 +19,20 @@ export interface EngineStatus {
   tunedHz: number;
   strength: number;
   converged: boolean;
+  /**
+   * How fast the solver renders against the clock, smoothed: 1 when it keeps up. Below that the
+   * audio device is starved and the sound breaks up.
+   */
+  pace: number;
 }
 
 /** Headroom factor: the machine must be this much faster than real time before we commit. */
 const SAFETY = 3;
+/** Share of each new pace reading taken into the smoothed pace. */
+const PACE_SMOOTHING = 0.15;
+/** Circuit time each benchmark runs before it starts timing, and then times. */
+const WARMUP_SECONDS = 0.02;
+const BENCH_SECONDS = 0.04;
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -47,7 +57,9 @@ export class AudioEngine {
     tunedHz: 0,
     strength: 0,
     converged: true,
+    pace: 1,
   };
+  private lastReport = 0;
 
   onStatus: ((s: EngineStatus) => void) | null = null;
 
@@ -75,6 +87,12 @@ export class AudioEngine {
     node.port.onmessage = (ev: MessageEvent<FromWorklet>) => {
       const m = ev.data;
       if (m.type !== 'status') return;
+      const now = performance.now();
+      if (this.lastReport > 0) {
+        const pace = Math.min(1, (m.rendered * 1000) / Math.max(now - this.lastReport, 1e-3));
+        this.status.pace += PACE_SMOOTHING * (pace - this.status.pace);
+      }
+      this.lastReport = now;
       this.status.solverRate = m.solverRate;
       this.status.reduced = m.solverRate < ctx.sampleRate;
       this.status.peak = m.peak;
@@ -120,21 +138,45 @@ export class AudioEngine {
   }
 
   /**
-   * Short benchmark of the real netlist. Costs a few milliseconds and saves the worklet from
-   * ever missing a deadline, which would be audible as a click.
+   * Short benchmark of the real netlist at each solver rate in turn until one keeps up with
+   * SAFETY to spare, timed with the кнопка up and, if there is one, held, whichever costs more.
+   * Costs some tens of milliseconds and saves the worklet from missing deadlines, which would be
+   * audible as clicks. Each rate is timed on its own: a multivibrator's switching edges cost the
+   * same however slowly the solver runs between them. When none keeps up, the cheapest is taken,
+   * and the search stops once halving the rate no longer pays.
    */
   private chooseDivisor(netlist: Netlist, contextRate: number): number {
-    const probe = new Simulation(netlist, contextRate);
-    probe.run(1500); // let the JIT settle before timing anything
-    const n = 3000;
-    const t0 = performance.now();
-    probe.run(n);
-    const stepsPerSecond = (n / (performance.now() - t0)) * 1000;
-
-    for (const d of [1, 2, 4, 8]) {
-      if (contextRate / d <= stepsPerSecond / SAFETY) return d;
+    const key = (e: Netlist['elements'][number]): boolean =>
+      e.kind === 'R' && e.name.startsWith('block_026@');
+    const states = [netlist];
+    if (netlist.elements.some(key)) {
+      const up = (ohms: number): Netlist => ({
+        ...netlist,
+        elements: netlist.elements.map((e) => (key(e) ? { ...e, ohms } : e)),
+      });
+      states.splice(0, 1, up(1e12), up(0.01));
     }
-    return 8;
+    let cheapest = 8;
+    let lowest = Infinity;
+    for (const d of [1, 2, 4, 8]) {
+      const rate = contextRate / d;
+      let cost = 0;
+      for (const state of states) {
+        const probe = new Simulation(state, rate);
+        probe.run(Math.round(rate * WARMUP_SECONDS)); // past the start and the JIT's first passes
+        const t0 = performance.now();
+        probe.run(Math.round(rate * BENCH_SECONDS));
+        cost = Math.max(cost, (performance.now() - t0) / 1000 / BENCH_SECONDS);
+      }
+      if (cost * SAFETY <= 1) return d;
+      // Halving the rate saved little: the edges dominate, and lower rates only lose accuracy.
+      if (cost > 0.8 * lowest) break;
+      if (cost < lowest) {
+        lowest = cost;
+        cheapest = d;
+      }
+    }
+    return cheapest;
   }
 
   private emit(): void {

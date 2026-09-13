@@ -35,6 +35,13 @@ const HOLD = 1e4;
 const RELTOL = 1e-5;
 const ABSTOL = 1e-8;
 const MAX_ITERATIONS = 50;
+/**
+ * A junction is linearised no further than this many thermal voltages above its critical voltage,
+ * where it already carries amps. A burst starts from the envelope's swing laid over the circuit,
+ * which can leave a junction forward-biased by volts; Newton would walk that back down a thermal
+ * voltage an iteration and run out of iterations first.
+ */
+const JUNCTION_HEADROOM = 12;
 /** Swing a burst starts from at the least, volts peak: the tank's noise, and above the solve's. */
 const SEED_VOLTS = 1e-3;
 /**
@@ -86,6 +93,8 @@ export class RfBurst {
 
   /** Tank amplitude over the last whole cycle, volts peak. */
   amplitude = 0;
+  /** Whether every step of the last `run` converged. */
+  converged = true;
   /** Junction currents averaged over the last `run`: into each BJT's base and collector, and
    * into each diode's anode. */
   readonly base: Float64Array;
@@ -234,36 +243,43 @@ export class RfBurst {
   }
 
   /**
-   * Advance by `duration` seconds with the quiet rails at the audio half's voltages, leaving the
-   * junction currents averaged over it. Returns false if a step failed to converge.
+   * Advance by `duration` seconds with the quiet rails at the audio half's voltages, or until the
+   * tank has settled if that comes first, leaving the junction currents averaged over the time
+   * covered. Returns that time; `converged` says whether every step converged.
    */
-  run(duration: number, volts: (net: string) => number): boolean {
+  run(duration: number, volts: (net: string) => number): number {
     const t = this.t;
     for (let k = 0; k < t.held.length; k++) this.held[k] = volts(t.held[k]!);
     this.base.fill(0);
     this.collector.fill(0);
     this.anode.fill(0);
 
-    let ok = true;
+    this.converged = true;
     let steps = 0;
     this.debt += duration;
     while (this.debt > 0.5 * this.h) {
       this.stampHistory();
-      if (!this.newton()) ok = false;
+      if (!this.newton()) this.converged = false;
       this.commit();
       this.accumulate();
       this.track();
       this.debt -= this.h;
       steps++;
+      // A burst is a few cycles; a slow audio step can hold dozens. Stop where it ends.
+      if (this.settled) {
+        this.debt = 0;
+        break;
+      }
     }
-    // Charge per second of the audio step, whatever whole number of steps covered it.
-    const scale = steps > 0 ? this.h / duration : 0;
+    const elapsed = this.settled ? steps * this.h : duration;
+    // Charge per second of what was covered, whatever whole number of steps covered it.
+    const scale = steps > 0 ? this.h / elapsed : 0;
     for (let k = 0; k < t.bjts.length; k++) {
       this.base[k]! *= scale;
       this.collector[k]! *= scale;
     }
     for (let k = 0; k < t.diodes.length; k++) this.anode[k]! *= scale;
-    return ok;
+    return elapsed;
   }
 
   private v(i: number): number {
@@ -298,7 +314,7 @@ export class RfBurst {
    * solution never had.
    */
   private limit(vnew: number, vold: number, vt: number, vcrit: number): number {
-    const v = limitJunction(vnew, vold, vt, vcrit);
+    const v = Math.min(limitJunction(vnew, vold, vt, vcrit), vcrit + JUNCTION_HEADROOM * vt);
     if (v !== vnew) this.limited = true;
     return v;
   }
@@ -340,20 +356,21 @@ export class RfBurst {
     const { t, h } = this;
     const rhs = this.linearRhs;
     rhs.fill(0);
-    const add = (i: number, value: number): void => {
-      if (i >= 0) rhs[i]! += value;
-    };
     for (let k = 0; k < t.held.length; k++) rhs[this.nets + k] = HOLD * this.held[k]!;
     for (let k = 0; k < t.caps.length; k++) {
       const cap = t.caps[k]!;
       const ieq = (cap.st.farads / h) * (2 * this.capV1[k]! - 0.5 * this.capV2[k]!);
-      add(cap.a, ieq);
-      add(cap.b, -ieq);
+      if (cap.a >= 0) rhs[cap.a]! += ieq;
+      if (cap.b >= 0) rhs[cap.b]! -= ieq;
     }
+    const { indI1, indI2 } = this;
     for (let k = 0; k < t.inds.length; k++) {
-      const past = (j: number): number => (2 * this.indI1[j]! - 0.5 * this.indI2[j]!) / h;
-      let value = -t.inds[k]!.st.henries * past(k);
-      for (const { j, henries } of this.indMutual[k]!) value -= henries * past(j);
+      let value = (-t.inds[k]!.st.henries * (2 * indI1[k]! - 0.5 * indI2[k]!)) / h;
+      const mutual = this.indMutual[k]!;
+      for (let m = 0; m < mutual.length; m++) {
+        const { j, henries } = mutual[m]!;
+        value -= (henries * (2 * indI1[j]! - 0.5 * indI2[j]!)) / h;
+      }
       rhs[this.indBranch[k]!] = value;
     }
     for (let k = 0; k < t.srcs.length; k++) rhs[this.srcBranch[k]!] = this.srcVolts[k]!;
@@ -423,6 +440,7 @@ export class RfBurst {
 
   private commit(): void {
     const t = this.t;
+
     for (let k = 0; k < t.caps.length; k++) {
       const cap = t.caps[k]!;
       this.capV2[k] = this.capV1[k]!;
@@ -438,12 +456,6 @@ export class RfBurst {
   private accumulate(): void {
     const t = this.t;
     const at = this.windowAt * this.windowSum.length;
-    const smooth = (channel: number, value: number): number => {
-      const old = this.window[at + channel]!;
-      this.window[at + channel] = value;
-      this.windowSum[channel]! += value - old;
-      return this.windowSum[channel]! / STEPS_PER_CYCLE;
-    };
     let channel = 0;
     for (let k = 0; k < t.bjts.length; k++) {
       const q = t.bjts[k]!;
@@ -454,16 +466,24 @@ export class RfBurst {
       const bd = st.isBd * Math.exp(Math.min((s * (this.v(q.e) - this.v(q.b)) - st.bv) / VT, 60));
       const ib = s * ((st.is * (eb - 1)) / st.bf + (st.is * (ec - 1)) / st.br - bd);
       const ic = s * (st.is * (eb - 1) - st.is * (ec - 1) * (1 + 1 / st.br));
-      this.base[k]! += smooth(channel++, ib);
-      this.collector[k]! += smooth(channel++, ic);
+      this.base[k]! += this.smooth(at + channel, channel++, ib);
+      this.collector[k]! += this.smooth(at + channel, channel++, ic);
     }
     for (let k = 0; k < t.diodes.length; k++) {
       const d = t.diodes[k]!;
       const st = d.st;
       const id = st.is * (Math.exp(Math.min((this.v(d.a) - this.v(d.k)) / st.nvt, 60)) - 1);
-      this.anode[k]! += smooth(channel++, id);
+      this.anode[k]! += this.smooth(at + channel, channel++, id);
     }
     this.windowAt = (this.windowAt + 1) % STEPS_PER_CYCLE;
+  }
+
+  /** Put a current into its channel's window and return the window's mean. */
+  private smooth(slot: number, channel: number, value: number): number {
+    const old = this.window[slot]!;
+    this.window[slot] = value;
+    this.windowSum[channel]! += value - old;
+    return this.windowSum[channel]! / STEPS_PER_CYCLE;
   }
 
   /** Measure the tank's swing cycle by cycle, and count cycles that fall at least half as fast as

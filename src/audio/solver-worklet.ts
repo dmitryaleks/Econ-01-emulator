@@ -34,6 +34,8 @@ export interface FromWorklet {
   tunedHz: number;
   strength: number;
   converged: boolean;
+  /** Seconds of audio rendered since the last report. */
+  rendered: number;
 }
 
 const REPORT_EVERY = 16; // render quanta, ~43 ms at 48 kHz
@@ -109,6 +111,7 @@ class SolverProcessor extends AudioWorkletProcessor {
         tunedHz: st.tunedHz,
         strength: st.strength,
         converged: sim.circuit.converged,
+        rendered: (REPORT_EVERY * out.length) / sampleRate,
       };
       this.port.postMessage(msg);
       this.peak = 0;
