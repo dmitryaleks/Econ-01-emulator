@@ -331,8 +331,9 @@ export class PanelCanvas {
     c.restore();
 
     const inset = this.px(FIELD_MM.pad * 0.5);
+    const insetBottom = this.px(FIELD_MM.padBottom * 0.5);
     c.save();
-    roundRect(c, x + inset, y + inset, w - inset * 2, h - inset * 2, this.px(1.2));
+    roundRect(c, x + inset, y + inset, w - inset * 2, h - inset - insetBottom, this.px(1.2));
     c.fillStyle = s.field.well;
     c.fill();
     if (s.style.texture) {
@@ -914,7 +915,7 @@ export class PanelCanvas {
       c.textAlign = 'center';
       const khz = Math.round(view.tunedHz / 1000);
       const label = view.station ? `${khz} кГц · ${view.station}` : `${khz} кГц`;
-      const [lx, ly] = this.toScreen(t.cx, t.cy + t.r + 5.2);
+      const [lx, ly] = this.toScreen(t.cx, t.cy + t.r + 3.6);
       c.fillText(label, lx, ly);
       c.restore();
     }

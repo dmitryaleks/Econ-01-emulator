@@ -98,7 +98,8 @@ square-on reference photograph of. Colours above are sampled from the photograph
   notching the rim at 60° intervals.
 - **Volume**: a small recessed window 29 × 11.5 mm with «ВКЛ.» and a left-pointing arrow above
   it; a finely ribbed cream thumbwheel shows through, carrying a red index mark.
-- **Tuning**: a cream **knurled knob**, r ≈ 19.7 mm, with a raised inner platform, a dished
+- **Tuning**: a cream **knurled knob**, r ≈ 16 mm, on the speaker's centre line below the volume
+  window, with a raised inner platform, a dished
   centre, and an engraved dial arc with four index dots.
 - **Modules** sit as square bodies with a **large domed circular cap**, the square shoulders just
   showing at the corners. The кнопка module carries a **black push cap**.
@@ -123,9 +124,9 @@ Front panel, from Рис. 1 of the manual and the retropc photographs:
 
 - **[C]** 5 + 1 + 1 rows of cell positions: **36 cube cells**, exactly matching the 36 modules,
   plus one full-width antenna slot.
-- **[C]** Measured from the photograph: field origin 8.2 mm from the left edge and 86.5 mm from
-  the top, **cell pitch 16.2 mm**, the antenna slot about 1.22 cells tall with small gaps above
-  and below it. The field runs almost to the bottom edge and hard against the left side, which
+- **[C]** Measured from the photograph: field origin 8.2 mm from the left edge and 83.4 mm from
+  the top, **cell pitch 16.2 mm**, the antenna slot about 1.1 cells tall with small gaps above
+  and below it, and only a thin lip of frame below the bottom row. The field runs almost to the bottom edge and hard against the left side, which
   is why the seven XT terminals have no room for printed labels on the real panel.
 - **[C]** Contacts are fitted *around the perimeter* of the field («поле с установленными по
   периметру контактами»): small clamp contacts along the top, right and bottom edges, and seven

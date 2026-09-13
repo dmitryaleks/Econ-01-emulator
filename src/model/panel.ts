@@ -147,19 +147,22 @@ export const HANDLE_MM = {
 
 /**
  * Assembly field. Cell pitch and origin measured off the photograph:
- * six columns spanning 100.7 mm, five main rows, the antenna slot, then the bottom row.
+ * six columns spanning 100.7 mm, five main rows, the antenna slot, then the bottom row. The
+ * vertical run is fitted inside the 206 mm case: the photograph puts the bottom row's lower edge
+ * about 201 mm down, with only a thin lip of frame below it.
  */
 export const FIELD_MM = {
   x: 8.2,
-  y: 86.5,
+  y: 83.4,
   pitch: 16.2,
   /** The antenna slot is a little taller than a cube row. */
-  antennaScale: 1.22,
+  antennaScale: 1.1,
   /** Gap above the antenna slot and below it. */
-  gapAbove: 3.4,
-  gapBelow: 1.2,
-  /** Moulded frame around the field. */
+  gapAbove: 2.0,
+  gapBelow: 0.8,
+  /** Moulded frame around the field: top and sides, and the thinner lip along the bottom. */
   pad: 5.4,
+  padBottom: 2.4,
 };
 
 export function cellRectMm(cell: Cell): { x: number; y: number; w: number; h: number } {
@@ -182,20 +185,23 @@ export function cellRectMm(cell: Cell): { x: number; y: number; w: number; h: nu
 export function fieldRectMm(): { x: number; y: number; w: number; h: number } {
   const first = cellRectMm({ col: 0, row: 0 });
   const last = cellRectMm({ col: COLS - 1, row: ROWS - 1 });
-  const pad = FIELD_MM.pad;
+  const { pad, padBottom } = FIELD_MM;
   return {
     x: first.x - pad,
     y: first.y - pad,
     w: last.x + last.w - first.x + pad * 2,
-    h: last.y + last.h - first.y + pad * 2,
+    h: last.y + last.h - first.y + pad + padBottom,
   };
 }
 
-/** Right-hand panel furniture, measured off the same photograph. */
+/**
+ * Right-hand panel furniture, measured off the same photograph. The speaker, the volume window
+ * and the tuning knob share one vertical centre line.
+ */
 export const CONTROLS_MM = {
   speaker: { cx: 152, cy: 119, r: 29.8 },
-  volume: { x: 138.5, y: 151.5, w: 29, h: 11.5 },
-  tuning: { cx: 152, cy: 181, r: 19.7 },
+  volume: { x: 137.5, y: 151.5, w: 29, h: 11.5 },
+  tuning: { cx: 152, cy: 184, r: 16 },
   badge: { x: 127, y: 68.5, w: 58, h: 12 },
   silk: { x: 10.5, y: 66 },
 };
