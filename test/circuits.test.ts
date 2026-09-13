@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CIRCUITS, DEVICE_24, DEVICE_26, DEVICE_6, loadCircuit, type Circuit,
+  CIRCUITS, DEVICE_24, DEVICE_26, DEVICE_6, DEVICE_9, loadCircuit, type Circuit,
 } from '../src/circuits/index.js';
 import { windingSection } from '../src/model/antenna.js';
 import { Board } from '../src/model/board.js';
@@ -223,6 +223,82 @@ describe('«Электронная няня» device 26 matches the factory sche
   });
 });
 
+/** Device 9's netlist checked part by part against the schematic on page 18. */
+describe('«Пищалка» device 9 matches the factory schematic', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_9);
+  const netlist = buildNetlist(board);
+  const joins = joinsIn(netlist);
+  const transistor = (block: string) =>
+    netlist.elements.find((e) => e.kind === 'Q' && e.name.startsWith(block));
+  const left = transistor('block_018');
+  const right = transistor('block_017');
+
+  it('fills all 30 cells with no antenna and no lead', () => {
+    expect(board.placements.size).toBe(30);
+    expect(DEVICE_9.leads ?? []).toHaveLength(0);
+    expect(left?.kind).toBe('Q');
+    expect(right?.kind).toBe('Q');
+  });
+
+  it('builds the left stage: 68 кОм load, 680 кОм and 0,01 мкФ from collector to base', () => {
+    if (left?.kind !== 'Q') return;
+    expect(joins('R', 68_000, 'VCC', left.collector)).toBe(true);
+    expect(joins('R', 680_000, left.collector, left.base)).toBe(true);
+    expect(joins('C', 0.01e-6, left.collector, left.base)).toBe(true);
+  });
+
+  it('keys the left emitter through 2,2 кОм and the кнопка to ground', () => {
+    if (left?.kind !== 'Q') return;
+    const r = netlist.elements.find(
+      (e) => e.kind === 'R' && e.ohms === 2_200 && [e.a, e.b].includes(left.emitter),
+    );
+    expect(r?.kind).toBe('R');
+    if (r?.kind !== 'R') return;
+    const far = r.a === left.emitter ? r.b : r.a;
+    const key = netlist.elements.find((e) => e.kind === 'R' && e.name.startsWith('block_026@'));
+    expect(key?.kind === 'R' && [key.a, key.b].sort()).toEqual([far, netlist.ground].sort());
+  });
+
+  it('builds the right stage and closes the loop', () => {
+    if (left?.kind !== 'Q' || right?.kind !== 'Q') return;
+    expect(joins('C', 680e-12, left.collector, right.base)).toBe(true);
+    expect(joins('R', 1_000_000, 'VCC', right.base)).toBe(true);
+    expect(joins('R', 2_200, 'VCC', right.collector)).toBe(true);
+    expect(right.emitter).toBe(netlist.ground);
+    expect(joins('C', 0.01e-6, right.collector, left.base)).toBe(true);
+  });
+
+  it('feeds XT4 through 3300 пФ and decouples the supply with 20 мкФ, + on the supply', () => {
+    if (right?.kind !== 'Q') return;
+    expect(joins('C', 3300e-12, right.collector, FIXED_NETS.AMP_IN)).toBe(true);
+    const el = netlist.elements.find((e) => e.kind === 'C' && e.farads === 20e-6);
+    expect(el?.kind === 'C' && el.a === 'VCC' && el.b === netlist.ground).toBe(true);
+  });
+
+  it('leaves the 1 МОм at (1,0), the 12 кОм at (1,4) and the 0,01 мкФ at (0,4) loose at one end', () => {
+    for (const where of ['block_008@1,0', 'block_002@1,4', 'block_013@0,4']) {
+      const el = netlist.elements.find((e) => e.name.startsWith(where));
+      expect(el?.kind === 'R' || el?.kind === 'C', where).toBe(true);
+      if (el?.kind !== 'R' && el?.kind !== 'C') continue;
+      const loose = [el.a, el.b].filter(
+        (net) => netlist.elements.filter((e) => elementTouches(e, net)).length === 1,
+      );
+      expect(loose, where).toHaveLength(1);
+    }
+  });
+});
+
+function elementTouches(e: Netlist['elements'][number], net: string): boolean {
+  switch (e.kind) {
+    case 'R': case 'C': case 'L': return e.a === net || e.b === net;
+    case 'D': return e.anode === net || e.cathode === net;
+    case 'Q': return e.base === net || e.collector === net || e.emitter === net;
+    case 'V': return e.p === net || e.n === net;
+    default: return false;
+  }
+}
+
 /** Device 24's netlist checked part by part against the schematic on page 33, and its timing. */
 describe('«Реле времени» device 24 matches the factory schematic', () => {
   const board = new Board();
@@ -317,7 +393,10 @@ describe('presets the solver can run', () => {
   for (const circuit of CIRCUITS.filter((c) => c.simulates)) {
     it(`«${circuit.title}» behaves as documented`, () => {
       const e = circuit.expect;
-      const base = measure(circuit);
+      if (e.gatedByButton) {
+        expect(measure(circuit, { button: false }).level, 'with the кнопка up').toBeLessThan(0.02);
+      }
+      const base = measure(circuit, e.gatedByButton ? { button: true } : {});
 
       if (e.silent) {
         expect(base.level).toBeLessThan(0.02);

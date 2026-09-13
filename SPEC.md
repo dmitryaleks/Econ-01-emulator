@@ -250,9 +250,14 @@ confirmed pinouts of §4, and checked against each device's schematic:
   tank node the right of row 5 (XT5), and L1's far end the antenna bar's right end (XT6). The
   «Вход» leads clip to the left contacts of rows 1 and 4; the ground one reaches XT1 only through
   the top strip, which the electrolytic in the top-right cell ties to XT1.
+- **Device 9** «Пищалка» (p. 18): the supply reaches the right of row 3 (XT3) through a «Крест», the
+  output 3300 pF the right of row 4 (XT4) along a «Мостик», and the кнопка's grounded side the top
+  strip, which the electrolytic in the top-right cell again ties to XT1. The кнопка sits unrotated
+  with its W contact on a left clip point, so its switched pair must be E–S. This agrees with the
+  pinout device 24 settled: W–E joined, S switched.
 
-Both layouts deliberately tie the top strip to XT1 with a module, so the strip is taken to be wired
-to nothing inside the case. The positions of XT2 and XT7 follow by sequence; no layout traced so
+Every layout traced so far ties the top strip to XT1 with a module, so the strip is taken to be
+wired to nothing inside the case. The positions of XT2 and XT7 follow by sequence; no layout traced so
 far touches them decisively.
 
 **[C]** In every one of the 30 device schematics the built-in amplifier appears as a dashed box

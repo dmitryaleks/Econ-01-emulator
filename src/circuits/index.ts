@@ -4,7 +4,7 @@
  *
  * `kitLegal`  — the arrangement uses no more modules and no more leads than the box contains.
  *
- * `simulates` — whether the solver actually runs it. The multivibrator family currently does
+ * `simulates` — whether the solver actually runs it. Device 6, a classic astable, does
  *               not. An astable's DC operating point is an unstable equilibrium; the solver
  *               starts every transient from exactly that point, so the circuit balances there
  *               and stays silent. See DEVPLAN, "Known defect: astable start-up". The circuits
@@ -163,6 +163,76 @@ export const DEVICE_6: Circuit = {
 };
 
 /**
+ * Device 9 «Пищалка», page 18 of the manual: the factory mounting drawing, transcribed cell by
+ * cell like device 6. All 30 main-grid cells are filled; no lead, no antenna.
+ *
+ * Its netlist is the schematic. The left КТ315Б has 68 кОм from the supply to its collector, and
+ * 680 кОм with 0,01 мкФ across from collector to base. Its emitter goes through 2,2 кОм and the
+ * кнопка to ground, which reaches XT1 over the top strip and the electrolytic's wire, as in
+ * device 24. Its collector drives the right КТ315Б's base through 680 пФ, biased by 1 МОм from
+ * the supply. The right collector, on 2,2 кОм, returns to the left base through 0,01 мкФ and
+ * feeds XT4 through 3300 пФ. 20 мкФ decouples the supply.
+ *
+ * Three modules touch the circuit at one end only: the 1 МОм at (1,0), the 12 кОм at (1,4) and
+ * the 0,01 мкФ at (0,4).
+ *
+ * Unlike device 6 it is not a pair of cross-coupled switches but two amplifying stages in a
+ * loop, so it starts from its operating point on its own. Its pitch carries backward Euler's
+ * first-order error: about 2,1 кГц at 48 кГц and 2,0 кГц at 96 кГц, settling near 1,87 кГц as the
+ * step shrinks.
+ */
+export const DEVICE_9: Circuit = {
+  id: 'device9',
+  title: 'Пищалка (устройство 9)',
+  description:
+    'Заводская схема со страницы 18 руководства. Тоже мультивибратор: с ним можно учить ' +
+    'азбуку Морзе. Кнопка в цепи эмиттера левого транзистора работает как телеграфный ключ, ' +
+    'а резистор 2,2 кОм там же уменьшает сигнал, идущий на усилитель. Громкость установите ' +
+    'регулятором. Раскладка повторяет заводской рисунок: заняты все 30 гнёзд.',
+  source: 'manual page 18, device 9: factory mounting drawing, transcribed cell by cell',
+  kitLegal: true,
+  simulates: true,
+  volume: 0.5,
+  placements: [
+    { col: 0, row: 0, moduleId: 'block_026', rotation: 0 }, // кнопка: E to ground, S to 2,2 кОм
+    { col: 1, row: 0, moduleId: 'block_008', rotation: 3 }, // 1 МОм, spare: one end loose
+    { col: 2, row: 0, moduleId: 'block_017', rotation: 2 }, // КТ315Б, right: E on the strip
+    { col: 3, row: 0, moduleId: 'block_024', rotation: 0 }, // «Тройник»
+    { col: 4, row: 0, moduleId: 'block_007', rotation: 2 }, // 1 МОм, right base bias
+    { col: 5, row: 0, moduleId: 'block_014', rotation: 3 }, // 20 мкФ: − and the strip on XT1
+
+    { col: 0, row: 1, moduleId: 'block_001', rotation: 1 }, // 2,2 кОм, left emitter
+    { col: 1, row: 1, moduleId: 'block_020', rotation: 0 }, // «Угол»
+    { col: 2, row: 1, moduleId: 'block_012', rotation: 0 }, // 0,01 мкФ, feedback to left base
+    { col: 3, row: 1, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 4, row: 1, moduleId: 'block_022', rotation: 1 }, // «Щель»
+    { col: 5, row: 1, moduleId: 'block_024', rotation: 1 }, // «Тройник»
+
+    { col: 0, row: 2, moduleId: 'block_018', rotation: 2 }, // КТ315Б, left
+    { col: 1, row: 2, moduleId: 'block_024', rotation: 1 }, // «Тройник»
+    { col: 2, row: 2, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 3, row: 2, moduleId: 'block_023', rotation: 1 }, // «Линия»
+    { col: 4, row: 2, moduleId: 'block_001', rotation: 2 }, // 2,2 кОм, right collector load
+    { col: 5, row: 2, moduleId: 'block_021', rotation: 0 }, // «Крест»: E on XT3
+
+    { col: 0, row: 3, moduleId: 'block_009', rotation: 2 }, // 0,01 мкФ, left collector to base
+    { col: 1, row: 3, moduleId: 'block_024', rotation: 2 }, // «Тройник»
+    { col: 2, row: 3, moduleId: 'block_022', rotation: 1 }, // «Щель»
+    { col: 3, row: 3, moduleId: 'block_025', rotation: 1 }, // «Мостик»
+    { col: 4, row: 3, moduleId: 'block_011', rotation: 1 }, // 3300 пФ output
+    { col: 5, row: 3, moduleId: 'block_025', rotation: 0 }, // «Мостик»: E on XT4
+
+    { col: 0, row: 4, moduleId: 'block_013', rotation: 3 }, // 0,01 мкФ, spare: one end loose
+    { col: 1, row: 4, moduleId: 'block_002', rotation: 0 }, // 12 кОм, spare: one end loose
+    { col: 2, row: 4, moduleId: 'block_006', rotation: 2 }, // 680 кОм, left collector to base
+    { col: 3, row: 4, moduleId: 'block_010', rotation: 0 }, // 680 пФ, left collector to right base
+    { col: 4, row: 4, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 5, row: 4, moduleId: 'block_004', rotation: 3 }, // 68 кОм, left collector load
+  ],
+  expect: { gatedByButton: true, minRms: 0.5, freqHz: [1700, 2300] },
+};
+
+/**
  * Device 26 «Электронная няня», page 35 of the manual: the factory mounting drawing, transcribed
  * cell by cell like device 6. All 30 cells are filled and the antenna sits in its slot.
  *
@@ -303,7 +373,7 @@ export const DEVICE_24: Circuit = {
   expect: {},
 };
 
-export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, DEVICE_24, DEVICE_26];
+export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, DEVICE_9, DEVICE_24, DEVICE_26];
 
 export function loadCircuit(board: Board, circuit: Circuit): void {
   board.clear();

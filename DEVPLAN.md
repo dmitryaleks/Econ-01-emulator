@@ -148,6 +148,12 @@ registry, the panel terminal map, and four circuits.
   30 cells filled, no leads, `kitLegal: true`. Its netlist, traced from contact alone, is the
   schematic, and the test checks it part by part. It does not yet make a sound; see the defect
   below.
+- **Пищалка (устройство 9)** — transcribed the same way and checked part by part against its
+  schematic. The netlist is the schematic, and three spare modules touch it at one end only (1 МОм,
+  12 кОм, 0,01 мкФ). It is two amplifying stages in a loop rather than cross-coupled switches, so
+  unlike device 6 it starts on its own and sounds: silent with the кнопка up, and a tone while it is
+  held. The pitch carries backward Euler's first-order error: 2,14 kHz at 48 kHz, 1,98 kHz at 96 kHz
+  and 1,87 kHz at 768 kHz. It is the first multivibrator preset with `simulates: true`.
 - **Электронная няня (устройство 26)** — transcribed the same way, antenna included, and checked
   part by part against its schematic. It is a radio-frequency oscillator on the antenna, which an
   audio-rate solver cannot run, so `simulates: false`. Its two supplied wires are a moisture probe
@@ -199,6 +205,7 @@ devices pass through the active region and the stronger one wins.
 | Ramping the supply over 0,05–20 ms to model the switch closing | Starts it, but the circuit then **latches** like a bistable |
 | Emitter-base avalanche clamp at −6 V | Right physics — a real astable's base does break down every cycle, and without it the model ran to −539 V — but not the blocker |
 | Rewriting `limitJunction` as SPICE's continuous `pnjlim` | A real bug fixed: the old one snapped to `vcrit` on a falling junction voltage, which is textbook limit-cycle behaviour. Still not sufficient |
+| Limiter-aware convergence: an iteration where a junction limiter clamped does not count as converged (added with the RF work) | A real bug fixed, and the astable unit test now lands on its period. Device 6 still sits silent at its operating point, so the start-up itself is not solved; device 9, which is not a cross-coupled astable, runs |
 | Adaptive sub-stepping down to h/64 | Produces a plausible 1,3 кГц square wave, but **87 % of steps need subdivision at every sample rate from 96 к to 768 кГц**, and it runs at 0,02× real time |
 
 **Diagnosis.** Subdivision rate is flat across two decades of timestep, so this is not stiffness:
