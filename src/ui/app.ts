@@ -21,6 +21,9 @@ import type { Skin } from './skins/skin.js';
 /** The grey unit is the one we have an orthogonal reference photograph of, so it leads. */
 const SKINS: Skin[] = [GREY, BLACK, SCHEMATIC];
 
+/** How long the pointer rests on a plugged module before its description appears. */
+const HINT_DELAY_MS = 1000;
+
 export class App {
   private readonly board = new Board();
   private readonly panel: PanelCanvas;
@@ -44,6 +47,10 @@ export class App {
   };
 
   private drag: { control: 'volume' | 'tuning'; startX: number; startValue: number } | null = null;
+  /** The description hint over the panel, the module it is for, and its pending timer. */
+  private hint: HTMLElement | null = null;
+  private hintOwner: string | null = null;
+  private hintTimer = 0;
   /** Last pointer position over the panel, for keyboard rotation. */
   private pointer: { x: number; y: number } | null = null;
   private dirty = true;
@@ -122,6 +129,7 @@ export class App {
       el.addEventListener('pointerdown', (ev) => {
         ev.preventDefault();
         if (this.board.remaining(def.id) <= 0) return;
+        this.hideHint();
         this.view.dragging = def.id;
         this.view.dragPos = null;
       });
@@ -149,8 +157,10 @@ export class App {
     };
 
     canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
+    this.hint = this.root.querySelector<HTMLElement>('#hint');
 
     canvas.addEventListener('pointerdown', (ev) => {
+      this.hideHint();
       const p = local(ev);
       const hit = this.panel.hitTest(p.x, p.y);
       canvas.setPointerCapture(ev.pointerId);
@@ -188,7 +198,7 @@ export class App {
         if (ev.button === 2 || ev.shiftKey) {
           this.turn(hit.cell, ev.shiftKey && ev.button !== 2 ? -1 : 1);
         } else if (ev.altKey) {
-          this.board.remove(hit.cell);
+          if (this.board.remove(hit.cell)) this.clicks.play('pull');
         } else {
           this.turn(hit.cell, 1);
         }
@@ -199,6 +209,7 @@ export class App {
     canvas.addEventListener('pointermove', (ev) => {
       const p = local(ev);
       this.pointer = p;
+      if (this.view.dragging || this.drag) this.hideHint();
       if (this.view.dragging) {
         this.view.dragPos = p;
         const hit = this.panel.hitTest(p.x, p.y);
@@ -220,6 +231,7 @@ export class App {
       }
 
       const hit = this.panel.hitTest(p.x, p.y);
+      this.trackHint(canvas, p, hit);
       const lit =
         hit && hit.kind === 'contact'
           ? (this.view.contactNet.get(contactKey(hit.cell, hit.edge)) ?? null)
@@ -240,7 +252,10 @@ export class App {
     };
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
-    canvas.addEventListener('pointerleave', () => (this.pointer = null));
+    canvas.addEventListener('pointerleave', () => {
+      this.pointer = null;
+      this.hideHint();
+    });
 
     window.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape' && this.view.dragging) {
@@ -264,6 +279,55 @@ export class App {
   /** Turn a module a quarter, with the tick of its detent. */
   private turn(cell: Cell, by: 1 | -1): void {
     if (this.board.rotate(cell, by)) this.clicks.play('turn');
+  }
+
+  /**
+   * Follow the pointer over the panel: once it has rested on the same plugged module for
+   * HINT_DELAY_MS, show that module's Russian description beside it.
+   */
+  private trackHint(canvas: HTMLCanvasElement, p: { x: number; y: number }, hit: Hit): void {
+    const cell = hit && (hit.kind === 'cell' || hit.kind === 'contact') ? hit.cell : null;
+    const owner = cell ? this.board.ownerOf(cell) : null;
+    if (owner !== this.hintOwner) {
+      this.hideHint();
+      this.hintOwner = owner;
+      if (owner && cell) {
+        this.hintTimer = window.setTimeout(() => {
+          const def = this.board.defAt(cell);
+          if (this.hintOwner !== owner || !def || !this.hint || !this.pointer) return;
+          this.hint.textContent = def.label;
+          this.hint.setAttribute('aria-hidden', 'false');
+          this.placeHint(canvas, this.pointer);
+          this.hint.classList.add('visible');
+        }, HINT_DELAY_MS);
+      }
+    }
+    this.placeHint(canvas, p);
+  }
+
+  /** Put the hint just below and right of the pointer, kept inside the stage. */
+  private placeHint(canvas: HTMLCanvasElement, p: { x: number; y: number }): void {
+    const hint = this.hint;
+    if (!hint) return;
+    const stage = hint.offsetParent as HTMLElement | null;
+    const x = canvas.offsetLeft + p.x;
+    const y = canvas.offsetTop + p.y;
+    const w = hint.offsetWidth;
+    const h = hint.offsetHeight;
+    const maxX = (stage?.clientWidth ?? Infinity) - 8;
+    const maxY = (stage?.clientHeight ?? Infinity) - 8;
+    const left = x + 16 + w > maxX ? x - 12 - w : x + 16;
+    const top = y + 20 + h > maxY ? y - 12 - h : y + 20;
+    hint.style.left = `${Math.max(8, left)}px`;
+    hint.style.top = `${Math.max(8, top)}px`;
+  }
+
+  private hideHint(): void {
+    window.clearTimeout(this.hintTimer);
+    this.hintOwner = null;
+    if (!this.hint) return;
+    this.hint.classList.remove('visible');
+    this.hint.setAttribute('aria-hidden', 'true');
   }
 
   private dropModule(hit: Hit): void {
