@@ -100,7 +100,7 @@ In the GIF the tone appears on the press, climbs from about 50 Hz to 410 Hz as t
 charges, and keeps sounding after release, drifting down as the charge leaks through 1.36 MΩ.
 That is the "relay". CH2 on the scope is the capacitor itself.
 
-<p align="center">🔊 <a href="docs/readme/audio/d24_relay.wav?raw=true"><b>LISTEN</b> · the same run as the GIF</a> <sub>(11 s WAV)</sub></p>
+<p align="center">🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d24_relay.wav"><b>LISTEN</b> · the same run as the GIF</a> <sub>(11 s WAV)</sub></p>
 
 ### Device 12 «Сирена» (Siren)
 
@@ -111,7 +111,7 @@ A classic astable multivibrator with 20 µF in the left transistor's emitter, wh
 1.4 kHz, then falls away as the transistor starves, silent within a second and a half. Tap the key
 and you have a siren: *«нажимая и отпуская кнопку, можно приближенно имитировать сигнал сирены»*.
 
-<p align="center">🔊 <a href="docs/readme/audio/d12_siren.wav?raw=true"><b>LISTEN</b> · the same three presses as the GIF</a> <sub>(11 s WAV)</sub></p>
+<p align="center">🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d12_siren.wav"><b>LISTEN</b> · the same three presses as the GIF</a> <sub>(11 s WAV)</sub></p>
 
 > Both GIFs are rendered frame by frame from the emulator's own panel and scope renderers, and
 > its own solver, at 12 kHz. The side column is added telemetry: time, key state, and the pitch
@@ -121,7 +121,9 @@ and you have a siren: *«нажимая и отпуская кнопку, мож
 > loudspeaker signal, solved offline at 48 kHz with the same key presses, sent through the
 > browser's own output stage (a tanh soft clip), peak-normalised and saved as 24 kHz WAV. The real
 > kit's 0,5ГДШ-2 loudspeaker, its plastic case and a tiring battery are not modelled. GitHub
-> can't play audio inline, so each 🔊 link opens the WAV in the browser's player.
+> can't play audio inline, and its file pages don't open WAVs, so each 🔊 link opens the file from
+> [`docs/readme/audio/`](docs/readme/audio/) through the jsDelivr CDN, straight into the browser's
+> own player.
 
 ---
 
@@ -135,12 +137,12 @@ probed where it gets interesting, each with what it sounds like:
 <td width="50%" valign="top">
 <img src="docs/readme/scope_d9.png" alt="Device 9 scope: both collectors" width="100%"><br>
 <b>09 «Пищалка»</b>: two amplifying stages in a loop, rounded and phase-shifted.<br>
-🔊 <a href="docs/readme/audio/d09_pishchalka.wav?raw=true"><b>LISTEN</b></a> · the key sends <code>··· ─── ···</code>
+🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d09_pishchalka.wav"><b>LISTEN</b></a> · the key sends <code>··· ─── ···</code>
 </td>
 <td width="50%" valign="top">
 <img src="docs/readme/scope_d6.png" alt="Device 6 scope: both collectors" width="100%"><br>
 <b>06 «Мультивибратор»</b>: textbook cross-coupled switches, a 27 µs pulse and a long pause.<br>
-🔊 <a href="docs/readme/audio/d06_multivibrator.wav?raw=true"><b>LISTEN</b></a> · two presses of the key
+🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d06_multivibrator.wav"><b>LISTEN</b></a> · two presses of the key
 </td>
 </tr>
 <tr>
@@ -148,13 +150,13 @@ probed where it gets interesting, each with what it sounds like:
 <img src="docs/readme/scope_d12.png" alt="Device 12 scope: collector and base" width="100%"><br>
 <b>12 «Сирена»</b>: the base of VT2 recharging from the −6.5 V its partner kicks it to, where
 the emitter-base junction breaks down, as on the real part.<br>
-🔊 <a href="docs/readme/audio/d12_siren.wav?raw=true"><b>LISTEN</b></a> · hold, then three sweeps
+🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d12_siren.wav"><b>LISTEN</b></a> · hold, then three sweeps
 </td>
 <td width="50%" valign="top">
 <img src="docs/readme/scope_d15.png" alt="Device 15 scope: base and collector" width="100%"><br>
 <b>15 Морзе с помехами</b>: a pulse only 18 µs wide, shorter than one audio sample, which the
 solver has to catch anyway.<br>
-🔊 <a href="docs/readme/audio/d15_morse_qrm.wav?raw=true"><b>LISTEN</b></a> · <code>─·─· ──·─</code> (CQ) through the whistle
+🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d15_morse_qrm.wav"><b>LISTEN</b></a> · <code>─·─· ──·─</code> (CQ) through the whistle
 </td>
 </tr>
 <tr>
@@ -162,13 +164,13 @@ solver has to catch anyway.<br>
 <img src="docs/readme/scope_d24.png" alt="Device 24 scope: loudspeaker and base" width="100%"><br>
 <b>24 Реле времени</b>: every spike is a radio-frequency burst, and every ramp is the base
 recovering before the next one.<br>
-🔊 <a href="docs/readme/audio/d24_relay.wav?raw=true"><b>LISTEN</b></a> · press, hold, let go
+🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d24_relay.wav"><b>LISTEN</b></a> · press, hold, let go
 </td>
 <td width="50%" valign="top">
 <img src="docs/readme/scope_d27.png" alt="Device 27 scope: loudspeaker and base" width="100%"><br>
 <b>27 Двухтональный генератор</b>: the same squegging, retuned by the key from 1.28 to
 1.10 kHz.<br>
-🔊 <a href="docs/readme/audio/d27_two_tone.wav?raw=true"><b>LISTEN</b></a> · key up, down, up, down
+🔊 <a href="https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d27_two_tone.wav"><b>LISTEN</b></a> · key up, down, up, down
 </td>
 </tr>
 </table>
@@ -189,19 +191,19 @@ spares included, turned as drawn. Its netlist is checked against the printed sch
 
 | # | Device | What you get | Listen | Solver |
 |---|---|---|---|---|
-| 6 | Мультивибратор | tone while the key is held, 2.4 kHz | [🔊](docs/readme/audio/d06_multivibrator.wav?raw=true) | ✅ correct; slower than real time in the browser |
-| 8 | Мультивибратор с низкой частотой | a click every ~1 s | [🔊](docs/readme/audio/d08_slow_multivibrator.wav?raw=true) | ✅ |
-| 9 | «Пищалка» | Morse key tone, 2.1 kHz | [🔊](docs/readme/audio/d09_pishchalka.wav?raw=true) | ✅ |
-| 12 | «Сирена» | steady 400 Hz, sweep on release | [🔊](docs/readme/audio/d12_siren.wav?raw=true) | ✅ |
-| 13 | Звуковой генератор | 400 Hz test tone (output wires described, not placed) | [🔊](docs/readme/audio/d13_sound_generator.wav?raw=true) | ✅ |
-| 15 | Генератор для азбуки Морзе с помехами | 1.6 kHz "interference", 570 Hz while keyed | [🔊](docs/readme/audio/d15_morse_qrm.wav?raw=true) | ✅ correct; ~50 % real time in the browser |
-| 24 | Реле времени | tone after a press that outlives the press | [🔊](docs/readme/audio/d24_relay.wav?raw=true) | ✅ RF squegging |
+| 6 | Мультивибратор | tone while the key is held, 2.4 kHz | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d06_multivibrator.wav) | ✅ correct; slower than real time in the browser |
+| 8 | Мультивибратор с низкой частотой | a click every ~1 s | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d08_slow_multivibrator.wav) | ✅ |
+| 9 | «Пищалка» | Morse key tone, 2.1 kHz | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d09_pishchalka.wav) | ✅ |
+| 12 | «Сирена» | steady 400 Hz, sweep on release | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d12_siren.wav) | ✅ |
+| 13 | Звуковой генератор | 400 Hz test tone (output wires described, not placed) | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d13_sound_generator.wav) | ✅ |
+| 15 | Генератор для азбуки Морзе с помехами | 1.6 kHz "interference", 570 Hz while keyed | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d15_morse_qrm.wav) | ✅ correct; ~50 % real time in the browser |
+| 24 | Реле времени | tone after a press that outlives the press | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d24_relay.wav) | ✅ RF squegging |
 | 26 | «Электронная няня» | moisture alarm on the antenna oscillator | — | ⚠️ probe not modelled |
-| 27 | Двухтональный генератор (+ the manual's other-tones variant) | 1.28 / 1.10 kHz | [🔊](docs/readme/audio/d27_two_tone.wav?raw=true) | ✅ RF squegging |
-| 28 | Генератор сигналов | ~1.1 kHz squeg, a long-wave "transmitter" | [🔊](docs/readme/audio/d28_signal_generator.wav?raw=true) | ✅ RF squegging |
-| 29 | «Метроном» | ~12 ticks a second | [🔊](docs/readme/audio/d29_metronome.wav?raw=true) | ✅ at ≥ 24 kHz; see [B4](#b4--known-glitches) |
-| 30 | «Морзянка» | keyed transmitter | [🔊](docs/readme/audio/d30_morse_transmitter.wav?raw=true) | ✅ RF squegging |
-| — | Детекторный приёмник | tune the knob to fictional stations | [🔊](docs/readme/audio/detector_receiver.wav?raw=true) | ✅ reconstruction, not from the manual |
+| 27 | Двухтональный генератор (+ the manual's other-tones variant) | 1.28 / 1.10 kHz | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d27_two_tone.wav) | ✅ RF squegging |
+| 28 | Генератор сигналов | ~1.1 kHz squeg, a long-wave "transmitter" | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d28_signal_generator.wav) | ✅ RF squegging |
+| 29 | «Метроном» | ~12 ticks a second | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d29_metronome.wav) | ✅ at ≥ 24 kHz; see [B4](#b4--known-glitches) |
+| 30 | «Морзянка» | keyed transmitter | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/d30_morse_transmitter.wav) | ✅ RF squegging |
+| — | Детекторный приёмник | tune the knob to fictional stations | [🔊](https://cdn.jsdelivr.net/gh/dmitryaleks/Econ-01-emulator@main/docs/readme/audio/detector_receiver.wav) | ✅ reconstruction, not from the manual |
 
 ---
 
