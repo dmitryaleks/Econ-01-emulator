@@ -1,0 +1,435 @@
+<p align="center">
+  <img src="docs/readme/banner.png" alt="ЭКОН·01 — electronic constructor 1982, browser emulator" width="100%">
+</p>
+
+<p align="center">
+  <code>▶ 12 FACTORY DEVICES</code>&nbsp;
+  <code>▶ 26 MODULE TYPES</code>&nbsp;
+  <code>▶ 5 TRANSISTORS OF BUILT-IN AMP</code>&nbsp;
+  <code>▶ 110 TESTS</code>&nbsp;
+  <code>▶ 0 AUDIO SAMPLES</code>
+</p>
+
+```text
+ ВНИИ «ЭЛЕКТРОНСТАНДАРТ» · ГАТЧИНСКИЙ ОПЫТНЫЙ ЗАВОД · АРТ. ЛО-085-01-2141 · ЦЕНА 15 РУБ.
+
+ ЭКОН-01 EMULATOR  v0.1                                   8.7 V  ▮▮▮▮▮▮▮▮▮▯  OK
+ ──────────────────────────────────────────────────────────────────────────────────
+ > LOAD MANUAL  econ01_manual.djvu ........ 53 PAGES ............................ OK
+ > LOAD MODULES block_spec.json ........... 26 TYPES, 36 CUBES, PINOUTS CONFIRMED  OK
+ > LOAD PANEL   XT1..XT7, TOP STRIP ....... TRACED FROM MOUNTING DRAWINGS ........ OK
+ > SOLVER       MNA + NEWTON + EBERS-MOLL + TWO CLOCKS FOR RF ..................... OK
+ > AUDIO        AUDIOWORKLET, 48 kHz ......................................... READY.
+
+ PRESS ▶ TO BUILD A CIRCUIT
+```
+
+A browser emulator of **«Электронный конструктор ЭКОН-01»**, a Soviet solderless electronics kit
+for 10–15 year olds (Gatchina, 1982 → early '90s). Snap the yellow cubes into the field, turn them,
+press the key, and **the circuit is actually solved**: node by node, transistor by transistor,
+thousands of times a second. Nothing you hear was recorded. A siren sweeps because a 20 µF
+capacitor charges in the emitter of a real multivibrator, and a time relay hums because an
+oscillator at 294 kHz keeps choking itself.
+
+> **Status:** a work in progress, and an honest one. Every claim about the hardware is tagged
+> **[C]**onfirmed, **[I]**nferred or **[G]**uessed in [`SPEC.md`](SPEC.md); what still does not work
+> is written down in [`UNSOLVED.md`](UNSOLVED.md).
+
+---
+
+## ▓▒░ TRACK LIST
+
+| Side A: The machine | Side B: How it was done |
+|---|---|
+| [A1 · The device](#a1--the-device) | [B1 · Reverse engineering, human in the loop](#b1--reverse-engineering-human-in-the-loop) |
+| [A2 · See it run](#a2--see-it-run) | [B2 · Circuit math in real time](#b2--circuit-math-in-real-time) |
+| [A3 · Oscilloscope party](#a3--oscilloscope-party) | [B3 · Power meter: the token budget](#b3--power-meter-the-token-budget) |
+| [A4 · Presets](#a4--presets) | [B4 · Known glitches](#b4--known-glitches) |
+| [A5 · Quick start](#a5--quick-start) | [B5 · Repository map and sources](#b5--repository-map-and-sources) |
+
+---
+
+## A1 · The device
+
+<p align="center">
+  <img src="docs/readme/skins.png" alt="The emulator in its three skins: grey case, black case, schematic" width="100%">
+</p>
+
+ЭКОН-01 is a portrait case, **190 × 206 × 38 mm**, running from six А316 cells (**8.7 V**). On the
+left is an assembly field of **36 cube cells**: a 6 × 5 grid, a full-width slot for the ferrite
+antenna bar, and a bottom row. On the right sit a loudspeaker, a volume thumbwheel that doubles
+as the power switch, and a tuning knob for the built-in variable capacitor C10. Inside the case is
+a five-transistor amplifier (КТ315Б ×2, МП26А, МП38, МП42Б). The kit shipped with 36 modules and a
+manual of **30 devices**: amplifiers, multivibrators, a siren, a Morse trainer, receivers, a baby
+monitor, a metronome and a pocket transmitter.
+
+There are no wires. **Every module is a hollow cube with one contact on each side face**, and two
+cubes connect only where their faces touch:
+
+```text
+            N                    ┌───────┬───────┬───────┐
+        ┌───●───┐                │  ─┤├─ │  ─┬─  │ ─▯▯─  │   same module, turned 90°,
+        │  ─▯▯─ │                │       │   │   │       │   is a different circuit:
+      W ●  68k  ● E    ◄─ pads ─► ●───────●───────●───────●   rotation is a permutation
+        │   o   │                │  ─▯▯─ │  ─┼─  │  ─┤├─ │   N→E→S→W of the four pins
+        └───●───┘                │       │   │   │       │
+            S                    └───────┴───────┴───────┘
+   a ring "o" tells look-alike      contacts on the right edge are the panel
+   modules apart (68k vs 2.2k)       terminals XT1…XT7; the top edge is one strip
+```
+
+The manual insists that a module must sit *«не только на своем месте, но и в таком положении,
+в каком он изображён на монтажном рисунке»*, not only in its place but turned as drawn. The
+emulator ships three skins: the grey and black production cases, colour-sampled from photographs,
+and a flat schematic view.
+
+---
+
+## A2 · See it run
+
+### Device 24 «Реле времени» (Time relay)
+
+<p align="center"><img src="docs/readme/relay.gif" alt="Device 24: press the key, the tone rises, let go and it keeps sounding" width="100%"></p>
+
+Holding the key charges a 20 µF capacitor through 68 kΩ. That capacitor feeds the base of an
+oscillator built on the **magnetic antenna**. The oscillator does not hum at its 294 kHz: it
+**squegs**. Each burst of radio frequency pumps its own base below cut-off, the base recovers
+through the capacitor, and the next burst fires. What reaches the loudspeaker is the burst rate.
+
+In the GIF the tone appears on the press, climbs from about 50 Hz to 410 Hz as the capacitor
+charges, and keeps sounding after release, drifting down as the charge leaks through 1.36 MΩ.
+That is the "relay". CH2 on the scope is the capacitor itself.
+
+### Device 12 «Сирена» (Siren)
+
+<p align="center"><img src="docs/readme/siren.gif" alt="Device 12: steady tone while held, a rising and falling sweep after each release" width="100%"></p>
+
+A classic astable multivibrator with 20 µF in the left transistor's emitter, which the key shorts.
+**Held:** a steady 400 Hz. **Let go:** the emitter capacitor charges, the pitch shoots up to about
+1.4 kHz, then falls away as the transistor starves, silent within a second and a half. Tap the key
+and you have a siren: *«нажимая и отпуская кнопку, можно приближенно имитировать сигнал сирены»*.
+
+> Both GIFs are rendered frame by frame from the emulator's own panel and scope renderers, and
+> its own solver, at 12 kHz. The side column is added telemetry: time, key state, and the pitch
+> measured from the loudspeaker signal.
+
+---
+
+## A3 · Oscilloscope party
+
+Clip up to two probes onto any contact and the scope shows real node voltages. Six presets,
+probed where it gets interesting:
+
+<p align="center"><img src="docs/readme/scope_gallery.png" alt="Phosphor scope traces of six presets" width="100%"></p>
+
+- **09 «Пищалка»:** two amplifying stages in a loop, rounded and phase-shifted.
+- **06 «Мультивибратор»:** textbook cross-coupled switches with a 27 µs pulse and a long pause.
+- **12 «Сирена»:** the base of VT2 recharging exponentially from the −6.5 V its partner kicks it
+  to (the emitter-base junction breaks down there, as on the real part).
+- **15 «Морзянка с помехами»:** a pulse only 18 µs wide, which forced the solver to resolve
+  events shorter than one audio sample.
+- **24 and 27:** the antenna oscillators, where every spike is an RF burst and every ramp is a
+  base recovering.
+
+Plot one channel against the other and the same recordings turn into figures. (The in-app scope
+is time-based; these X–Y screens are drawn from its recorded traces.) The third screen goes deeper:
+it is the 413 kHz tank of device 29 spiralling outward inside a single burst, voltage against
+current, from a brute-force reference simulation.
+
+<p align="center"><img src="docs/readme/xy_gallery.png" alt="X-Y figures: device 24, device 9, and an RF burst phase portrait" width="100%"></p>
+
+---
+
+## A4 · Presets
+
+Each factory preset is the manual's **mounting drawing transcribed cell by cell**: all 30 cells,
+spares included, turned as drawn. Its netlist is checked against the printed schematic by a test.
+
+| # | Device | What you get | Solver |
+|---|---|---|---|
+| 6 | Мультивибратор | tone while the key is held, 2.4 kHz | ✅ correct; slower than real time in the browser |
+| 8 | Мультивибратор с низкой частотой | a click every ~1 s | ✅ |
+| 9 | «Пищалка» | Morse key tone, 2.1 kHz | ✅ |
+| 12 | «Сирена» | steady 400 Hz, sweep on release | ✅ |
+| 13 | Звуковой генератор | 400 Hz test tone (output wires described, not placed) | ✅ |
+| 15 | Генератор для азбуки Морзе с помехами | 1.6 kHz "interference", 570 Hz while keyed | ✅ correct; ~50 % real time in the browser |
+| 24 | Реле времени | tone after a press that outlives the press | ✅ RF squegging |
+| 26 | «Электронная няня» | moisture alarm on the antenna oscillator | ⚠️ probe not modelled |
+| 27 | Двухтональный генератор (+ the manual's other-tones variant) | 1.28 / 1.10 kHz | ✅ RF squegging |
+| 28 | Генератор сигналов | ~1.1 kHz squeg, a long-wave "transmitter" | ✅ RF squegging |
+| 29 | «Метроном» | ~12 ticks a second | ✅ at ≥ 24 kHz; see [B4](#b4--known-glitches) |
+| 30 | «Морзянка» | keyed transmitter | ✅ RF squegging |
+| — | Детекторный приёмник | tune the knob to fictional stations | ✅ reconstruction, not from the manual |
+
+---
+
+## A5 · Quick start
+
+```bash
+npm install
+npm run dev        # http://localhost:5173 — pick a preset, press «Включить звук»
+npm test           # vitest: solver, netlists, presets vs schematics, timing
+npm run build      # type-check and bundle to dist/
+```
+
+**Drag** a module from the bin onto the field. **Click**, right-click or press **R** to turn it,
+and **Alt+click** to pull it. **Click a contact** to clip a probe. **Press the кнопка** by its black
+cap. **Free-play mode** lifts the kit's module counts.
+
+---
+
+## B1 · Reverse engineering, human in the loop
+
+There was no schematic capture, no netlist and no emulator to start from. The sources were a
+scanned 1986 manual, a handful of photographs, and a person who could look at a zoomed-in
+blotch and tell a marker ring from a speck of scan dust. The work ran as a loop between a model
+that does the tedious, checkable parts and a human who decides what the evidence says.
+
+```mermaid
+flowchart LR
+    classDef src fill:#1a0b2e,stroke:#ff2e88,color:#ffd6ec
+    classDef ai fill:#07202a,stroke:#00e5ff,color:#c9f7ff
+    classDef human fill:#2a1a00,stroke:#ffb000,color:#ffe7b0
+    classDef gate fill:#0a1f0a,stroke:#39ff14,color:#d7ffd0
+
+    M[/"Manual DjVu<br/>53 pages"/]:::src --> X["ddjvu → page PNGs<br/>bookmap fixes page order"]:::ai
+    P[/"Orthogonal photo<br/>of a grey unit"/]:::src --> G["Panel geometry in mm,<br/>colour palette"]:::ai
+    X --> T["Parts table crops<br/>Pillow segmentation, no OCR"]:::ai
+    T --> R["Confirm each icon at zoom:<br/>symbol, ring, wire stubs"]:::human
+    R --> B[("block_spec.json<br/>26 confirmed pinouts")]:::gate
+    X --> C["cells.py tiles a mounting<br/>drawing into 30 cells"]:::ai
+    C --> L["Transcribe: module id +<br/>rotation per cell"]:::ai
+    L --> N["Build netlist by<br/>contact alone (union-find)"]:::ai
+    B --> N
+    N --> S{"matchSchematic:<br/>every part found,<br/>no spare bridges nodes?"}:::gate
+    S -- no --> L
+    S -- yes --> V{"Simulate at 24 / 48 / 96 kHz:<br/>does the pitch hold still?"}:::gate
+    V -- no --> F["Fix the solver<br/>or the model"]:::ai
+    F --> V
+    V -- yes --> H["Listen in the browser,<br/>report what sounds wrong"]:::human
+    H --> D["Compare with the manual's text;<br/>SPEC.md claim tagged [C] [I] [G],<br/>preset + tests"]:::gate
+```
+
+<p align="center"><img src="docs/readme/re_strip.png" alt="Manual mounting drawing tiled into cells next to the emulator's transcription" width="100%"></p>
+
+**Who did what:**
+
+| The human (the kit's owner) | The model (Claude Code) |
+|---|---|
+| Chose the goals, the order of devices, and when to commit | Extracted the manual, cropped and tiled every table and drawing |
+| Exported the parts-table scans; confirmed every module's wiring at high zoom (all 26 pinouts) | Transcribed 30-cell layouts and wrote the netlist builder, schematic matcher and tests |
+| Played the result and reported what was off: a scope that moved with no sound behind it, click sounds that came out muffled and overdriven | Diagnosed and fixed it: a worklet running 8× slower than real time, an overdriven click synth |
+| Answered 13 clarifying questions and settled design calls | Wrote the solver, and documented dead ends in `DEVPLAN.md` and `UNSOLVED.md` |
+
+**Rules that kept it honest:**
+
+- **Wiring is read from contact alone.** A layout is traced as physics sees it, never "as it
+  was probably meant". The schematic comparison is a search that must place every printed part
+  on a distinct module and let no spare module bridge two nodes. Spares are expected: the factory
+  fills all 30 cells to fit what is in the box.
+- **Evidence beats the first reading.** The кнопка was first recorded with all three contacts
+  apart until pressed. Device 24's layout only makes sense if W–E is a plain wire, so the
+  registry was corrected, and that correction then explained a cryptic *«развернуть на 180°»* on
+  device 27's page.
+- **The panel map came from the drawings.** Tracing devices 6 and 26 showed the terminals
+  XT1–XT7 are the right-edge contacts, that the top edge is one strip, and that the left edge is
+  only clip points. The first model had them on the wrong side.
+- **Every claim gets a tag.** **[C]** means a scan or photograph shows it, **[I]** that it follows
+  from those, **[G]** that it is a guess (β = 80, core Q = 150, coupling k = 0.8). Mismatches are
+  written down, not smoothed over: device 8 clicks every 1.06 s against the manual's "several
+  seconds", and the metronome's tuning range is wider than *«в небольших пределах»*.
+
+---
+
+## B2 · Circuit math in real time
+
+### The signal path
+
+```mermaid
+flowchart LR
+    classDef ui fill:#1a0b2e,stroke:#ff2e88,color:#ffd6ec
+    classDef core fill:#07202a,stroke:#00e5ff,color:#c9f7ff
+    classDef audio fill:#0a1f0a,stroke:#39ff14,color:#d7ffd0
+
+    U["Panel canvas<br/>drag · turn · key · knobs"]:::ui --> BD["Board<br/>cells + rotations"]:::core
+    BD --> NL["buildNetlist<br/>union-find over contacts<br/>+ the built-in amplifier"]:::core
+    NL -- "topology changed" --> BM["benchmark each solver rate<br/>(key up and held)"]:::audio
+    BM --> WK["AudioWorklet<br/>Simulation @ 48/24/12/6 kHz<br/>interpolate · soft clip"]:::audio
+    NL -- "only values changed<br/>(key, knob)" --> UPD["Simulation.update<br/>keeps every capacitor's charge"]:::audio
+    UPD --> WK
+    WK --> SPK(("🔊"))
+    NL --> MR["Mirror Simulation @ 12 kHz<br/>main thread"]:::core
+    MR --> SC["Scope"]:::ui
+    WK -- "peak · pace · converged" --> ST["Status line"]:::ui
+```
+
+### 1 · Modified nodal analysis, one step at a time
+
+Every capacitor and inductor is replaced, for one time step *h*, by a conductance and a current
+source (backward Euler), so the circuit becomes a resistor network to solve for the next instant:
+
+$$ i_C = \frac{C}{h}\left(v_{n+1} - v_n\right) \qquad v_L = \frac{L}{h}\left(i_{n+1} - i_n\right) $$
+
+$$ \begin{bmatrix} G + \tfrac{C}{h} & B \\ B^{\mathsf T} & -\tfrac{L}{h} \end{bmatrix}
+   \begin{bmatrix} v \\ i \end{bmatrix} = \begin{bmatrix} i_{\text{hist}} + i_{\text{junctions}}(v) \\ e \end{bmatrix} $$
+
+Transistors are **Ebers–Moll**, with silicon parameters for КТ315Б and germanium for the
+amplifier's МП26А/МП38/МП42Б, plus the emitter-base breakdown at 6 V that a multivibrator's base
+really hits. Diodes are Shockley. The exponentials make the system non-linear, so each step runs
+**Newton–Raphson**, $J(x_k)\,\Delta x = -F(x_k)$. Junction voltages are limited between
+iterations, SPICE-style, and an iteration where a limiter bit never counts as converged. The DC
+starting point comes from **gmin stepping**. The five-transistor amplifier is on every board, solved
+with everything else.
+
+### 2 · A sparse solve, planned once
+
+A board has about 30–40 unknowns, but only about 15 % of the matrix is ever touched. The first
+factorisation picks pivots by **Markowitz's rule** (fewest fill-ins, within a stability
+threshold) and records the elimination as a plan; every later solve replays only those
+operations. The linear part of the matrix is built once per step size, and every element writes
+into fixed slots.
+
+<p align="center"><img src="docs/readme/sparsity.png" alt="Sparsity pattern of device 12's matrix, stamped and fill-in, in node and pivot order" width="80%"></p>
+
+### 3 · Catching a multivibrator's switching edge
+
+A multivibrator's flip is a mode that grows at around 10⁹ s⁻¹ through the junction capacitances.
+Backward Euler at an audio step damps such a mode instead of following it, and the circuit parks
+on the unstable balance between its two states, which is why every astable was silent at first.
+The fix reads a number the LU factorisation already has. The determinant of the step matrix is a
+product over the circuit's natural frequencies,
+
+$$ \det\!\left(G + \tfrac{C}{h}\right) \;\propto\; \prod_{\lambda}\left(\tfrac{1}{h} - \lambda\right), $$
+
+so its **sign flips exactly when a real mode grows faster than the step can follow** (*hλ > 1*).
+A trial solve that meets such a matrix, fails to converge in 10 iterations, or bends a junction's
+slope too sharply is abandoned. The step is then covered in substeps that dive towards
+picoseconds through the edge and climb back out.
+
+<p align="center"><img src="docs/readme/substeps.png" alt="Substep sizes across one audio step containing a switching edge" width="100%"></p>
+
+The pitch then holds still across sample rates: device 12 gives 405–413 Hz at 24, 48 and 96 kHz.
+The cost is about 40 substeps and 170 solves per edge, whatever the rate.
+
+### 4 · Two clocks for radio frequency
+
+The antenna oscillators run at **290–970 kHz**, a hundred times faster than the audio clock. The
+emulator solves them on two time scales at once.
+
+**Envelope, most of the time.** The antenna's tank is treated as one resonant mode. An AC solve of
+the real network gives its frequency, shape, stored energy *w* and losses *G*. Each junction under
+a sinusoidal swing is summarised by its **describing function**,
+
+$$ e^{(V_0 + aV_T\cos\theta)/V_T} = e^{V_0/V_T}\big(I_0(a) + 2I_1(a)\cos\theta + \dots\big), $$
+
+which gives the power the transistor feeds the tank, *p(A)*, and the rectified current that drags
+the audio-rate bias. The amplitude then obeys an energy balance, solved implicitly every audio
+step with a bracketed search that holds ln *A* through each circuit solve:
+
+$$ \frac{d\ln A}{dt} = -\,\frac{p(A) + G/2}{2w} $$
+
+**Burst transient, when it squegs.** Once the swing gets violent, averaging breaks: the tank
+overshoots and dumps its energy into the base capacitor within a cycle or two. The RF part of the
+circuit alone is then integrated as a true transient, **BDF2 at 32 steps per cycle**, with the
+quiet rails held:
+
+$$ i_C = \frac{C}{2h}\left(3v_{n+1} - 4v_n + v_{n-1}\right) $$
+
+Its junction currents, averaged over one RF cycle, flow into the audio solve. When the tank rings
+down, the envelope takes over again. A steady oscillation is handed back to the envelope too, with
+a 24-cycle look-ahead every 50 ms in case it starts to squeg.
+
+<p align="center"><img src="docs/readme/burst_vs_envelope.png" alt="Brute-force RF carrier against the emulator's envelope and burst transient" width="100%"></p>
+
+The chart compares the two against a brute-force transient of the whole circuit. They are not
+the same waveform, and are not meant to be. What the ear gets, the burst rate and the charge each
+burst pumps out of the base, is what gets checked. Device 24 squegs every 2.19–2.20 ms at 24, 48
+and 96 kHz against about 2.2 ms by brute force, and device 29 ticks every 85–100 ms against 78–85 ms.
+
+### 5 · Keeping up with the sound card
+
+The solver lives in an **AudioWorklet**. Before a new circuit plays, the engine times it at 48,
+24, 12 and 6 kHz, with the key up and with it held, and picks the fastest rate with 3× headroom,
+interpolating up to the device rate. It stops lowering the rate once halving it no longer saves
+time, because switching edges cost the same at any rate. The worklet reports how fast it renders
+against the clock, and the status line says so plainly when it falls behind: «не успевает: 53 %».
+Pressing the key or turning a knob only changes element values, so the running simulation takes
+them in place and **capacitors keep their charge**, which is what makes a time relay possible.
+
+---
+
+## B3 · Power meter: the token budget
+
+The emulator, its reverse engineering and its documentation came out of **one long Claude Code
+session**. The counts below come from that session's own transcript and cover the work up to this
+README, including rendering its artwork.
+
+<p align="center"><img src="docs/readme/power_meter.png" alt="Token usage and tool calls of the session" width="100%"></p>
+
+| Meter | Reading |
+|---|---|
+| Wall clock | 29.2 h, 12–13 Sep 2026 |
+| Model turns | 1,635 (Claude Opus 5, with some Sonnet 5) |
+| Human prompts | ~84 |
+| Tool calls | 2,041, of which 1,004 shell · 367 file reads · 359 edits and writes · 237 browser actions |
+| Images examined | 327: manual pages, zoomed cells, emulator screenshots |
+| Context compactions | 4 |
+| Output tokens | **3.1 M**: code, docs, tests, and the reasoning around them |
+| Fresh input tokens | 3.3 k |
+| Cache writes | 11.8 M |
+| Cache reads | **778 M** |
+
+**Reading the meter.** Almost everything is **cache reads**: each turn re-reads the growing
+conversation (instructions, code, earlier results) from the prompt cache instead of paying for it
+fresh. Output is what was actually written. For scale, the repository holds about 7,900 lines of
+TypeScript in `src/`, 1,700 lines of tests and 900 lines of spec, plan and open-problems notes.
+Images are a real line item: this project is read off scans, so looking was most of the work.
+
+---
+
+## B4 · Known glitches
+
+Written down in full in [`UNSOLVED.md`](UNSOLVED.md):
+
+- **Fast multivibrators outrun the browser.** Device 6 plays at about a third of real time in
+  Chrome, device 15 at about half. Their edges are correct but expensive.
+- **The metronome needs 24 kHz**, and the browser's benchmark gives it 12 kHz, where its ticks
+  come several times too slowly. Its tick rate also swings far more with the tuning knob than the
+  manual's "small limits".
+- **The radio block is the one behavioural part.** Real carriers at 0.15–1.6 MHz are replaced by
+  fictional stations injected into the antenna's coupling winding. That injection still leaks
+  into the oscillator presets, and still assumes C10 spans the whole coil.
+- **Device 26's moisture probe** has no model yet: the leads are plain wires.
+
+---
+
+## B5 · Repository map and sources
+
+```text
+src/
+  model/      board, panel geometry (mm), module catalogue generated from the registry, antenna
+  netlist/    contacts → nets by union-find, the built-in amplifier transistor by transistor
+  sim/        mna.ts (steps, Newton, substeps) · matrix.ts (sparse plan LU) · rf.ts (envelope)
+              burst.ts (RF transient) · models.ts (Ebers–Moll, Shockley) · radio.ts (stations)
+  audio/      engine.ts (rate benchmark, pace) · solver-worklet.ts · clicks.ts (synthesized clicks)
+  ui/         panel-canvas.ts · probe.ts (scope) · skins/ (grey, black, schematic)
+  circuits/   the presets, one commented cell per line
+assets/blocks/   block_spec.json: 26 module types, confirmed pinouts, icon crops, processing recipe
+assets/core/     Приложение 3 scans the built-in amplifier is transcribed from
+test/            solver, netlist, schematic matcher, preset behaviour and timing
+SPEC.md          the reverse-engineered device, every claim tagged [C] [I] [G]
+DEVPLAN.md       phases, decisions, what was tried and why it failed
+UNSOLVED.md      what does not work yet
+```
+
+**Sources.** The factory manual «Электронный конструктор ЭКОН-01. Руководство по эксплуатации»
+(ВНИИ «Электронстандарт», 1986), scanned at [retropc.org](http://retropc.org/Elektronnyj_konstruktor_Ekon-01_s_59.html);
+photographs from retropc.org and [sovtech.su](https://www.sovtech.su/2024/11/30/); history from
+rw6ase.narod.ru, rdwiki.com and radionic.ru. Third-party scans and photographs stay out of the
+repository. The exceptions are the parts-table and Приложение 3 crops the models are built from,
+and one mounting-drawing crop in this README.
+
+```text
+ ──────────────────────────────────────────────────────────────────────────────────
+  КОНЕЦ ПЛЁНКИ · END OF TAPE                               ◄◄  REWIND   ■ STOP
+```
