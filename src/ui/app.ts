@@ -39,8 +39,6 @@ export class App {
     level: 0,
     contactNet: new Map(),
     litNet: null,
-    station: null,
-    tunedHz: 0,
   };
 
   private drag: { control: 'volume' | 'tuning'; startX: number; startValue: number } | null = null;
@@ -71,8 +69,6 @@ export class App {
     onResize();
 
     this.audio.onStatus = (s) => {
-      this.view.station = s.station;
-      this.view.tunedHz = s.tunedHz;
       this.view.level = s.peak;
       const rate = s.solverRate
         ? ` · решатель ${Math.round(s.solverRate / 1000)} кГц` +
@@ -94,8 +90,6 @@ export class App {
     this.netlist = buildNetlist(this.board);
     this.view.contactNet = this.netlist.contactNet;
     if (!this.mirror?.update(this.netlist)) this.mirror = new Simulation(this.netlist, 12_000);
-    this.view.station = this.mirror.radioState.station?.name ?? null;
-    this.view.tunedHz = this.mirror.radioState.tunedHz;
     this.audio.setNetlist(this.netlist);
     this.updateBinCounts();
     this.writeHash();
@@ -296,7 +290,7 @@ export class App {
   private syncScopeChannels(): void {
     const labels = this.view.probes.map((p) => `${p.cell.col},${p.cell.row}·${p.edge}`);
     if (labels.length === 0) labels.push('динамик');
-    this.scope.setChannels(labels, [this.view.skin.probe, this.view.skin.accent], 600);
+    this.scope.setChannels(labels, this.view.skin.scope.traces, 600);
   }
 
   // -- chrome ---------------------------------------------------------------

@@ -57,7 +57,7 @@ export const BLACK: Skin = {
   accent: '#E04A2F',
   netLive: '#FFCF4A',
   probe: '#4AD3FF',
-  scope: { background: '#0C0C0E', grid: '#1E1E23' },
+  scope: { background: '#0C0C0E', grid: '#1E1E23', traces: ['#39FF14', '#C6FF4D'] },
 
   style: {
     handle: 'dimpled',

@@ -24,7 +24,7 @@ export class Scope {
     labels.forEach((label, i) => {
       this.traces.push({
         label,
-        colour: colours[i] ?? '#4ad3ff',
+        colour: colours[i] ?? '#39FF14',
         data: new Float32Array(samples),
         head: 0,
       });

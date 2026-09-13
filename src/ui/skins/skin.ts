@@ -99,7 +99,10 @@ export interface Skin {
   accent: string;
   netLive: string;
   probe: string;
-  /** Background and grid for the scope, so it sits with the panel. */
-  scope: { background: string; grid: string };
+  /**
+   * Background and grid for the scope, so it sits with the panel, and its two trace colours: the
+   * green of a phosphor screen.
+   */
+  scope: { background: string; grid: string; traces: [string, string] };
   style: SkinStyle;
 }

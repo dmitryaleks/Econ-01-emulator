@@ -38,8 +38,6 @@ export interface ViewState {
   level: number;
   contactNet: Map<string, string>;
   litNet: string | null;
-  station: string | null;
-  tunedHz: number;
 }
 
 const MARGIN = 6;
@@ -907,18 +905,6 @@ export class PanelCanvas {
     c.lineTo(tx + Math.cos(angle) * tr * 0.58, ty + Math.sin(angle) * tr * 0.58);
     c.stroke();
     c.restore();
-
-    if (view.tunedHz > 0) {
-      c.save();
-      c.fillStyle = s.textOnCase;
-      c.font = `${Math.max(6, this.px(2.8))}px ui-monospace, monospace`;
-      c.textAlign = 'center';
-      const khz = Math.round(view.tunedHz / 1000);
-      const label = view.station ? `${khz} кГц · ${view.station}` : `${khz} кГц`;
-      const [lx, ly] = this.toScreen(t.cx, t.cy + t.r + 3.6);
-      c.fillText(label, lx, ly);
-      c.restore();
-    }
   }
 
   private drawProbes(view: ViewState): void {

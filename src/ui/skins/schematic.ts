@@ -53,7 +53,7 @@ export const SCHEMATIC: Skin = {
   accent: '#B3341B',
   netLive: '#1D6FD0',
   probe: '#0E8F6F',
-  scope: { background: '#FFFFFF', grid: '#E7E4DC' },
+  scope: { background: '#FFFFFF', grid: '#E7E4DC', traces: ['#0A9B2C', '#6B9A00'] },
 
   style: {
     handle: 'plain',

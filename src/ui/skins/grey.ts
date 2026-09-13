@@ -61,7 +61,7 @@ export const GREY: Skin = {
   accent: '#C43420',
   netLive: '#FF9C2A',
   probe: '#1E8FD6',
-  scope: { background: '#22262A', grid: '#333A3F' },
+  scope: { background: '#22262A', grid: '#333A3F', traces: ['#39FF14', '#C6FF4D'] },
 
   style: {
     handle: 'dimpled',
