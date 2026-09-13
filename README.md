@@ -66,17 +66,7 @@ monitor, a metronome and a pocket transmitter.
 There are no wires. **Every module is a hollow cube with one contact on each side face**, and two
 cubes connect only where their faces touch:
 
-```text
-            N                    ┌───────┬───────┬───────┐
-        ┌───●───┐                │  ─┤├─ │  ─┬─  │ ─▯▯─  │   same module, turned 90°,
-        │  ─▯▯─ │                │       │   │   │       │   is a different circuit:
-      W ●  68k  ● E    ◄─ pads ─► ●───────●───────●───────●   rotation is a permutation
-        │   o   │                │  ─▯▯─ │  ─┼─  │  ─┤├─ │   N→E→S→W of the four pins
-        └───●───┘                │       │   │   │       │
-            S                    └───────┴───────┴───────┘
-   a ring "o" tells look-alike      contacts on the right edge are the panel
-   modules apart (68k vs 2.2k)       terminals XT1…XT7; the top edge is one strip
-```
+<p align="center"><img src="docs/readme/cubes.png" alt="One module with contacts N, E, S and W; three cubes joined where their pads touch; a module turned 90 degrees; the field's edge contacts XT1 to XT7" width="100%"></p>
 
 The manual insists that a module must sit *«не только на своем месте, но и в таком положении,
 в каком он изображён на монтажном рисунке»*, not only in its place but turned as drawn. The
