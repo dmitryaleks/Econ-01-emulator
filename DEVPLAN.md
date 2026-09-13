@@ -154,6 +154,11 @@ registry, the panel terminal map, and four circuits.
   unlike device 6 it starts on its own and sounds: silent with the кнопка up, and a tone while it is
   held. The pitch carries backward Euler's first-order error: 2,14 kHz at 48 kHz, 1,98 kHz at 96 kHz
   and 1,87 kHz at 768 kHz. It is the first multivibrator preset with `simulates: true`.
+- **Двухтональный генератор (устройство 27)** — transcribed the same way and checked part by part
+  against its schematic. It is device 26's antenna oscillator with the moisture probe replaced by
+  68 кОм ∥ 3300 пФ ∥ кнопка on L2's return. Run through the RF solver it squegs at 1,28 kHz released
+  and 1,10 kHz held, the same at 24, 48 and 96 kHz, so `simulates: true`. The page's replacement
+  module, 0,01 мкФ turned 180°, is a second preset: 1,13 kHz released, 1,10 kHz held.
 - **Электронная няня (устройство 26)** — transcribed the same way, antenna included, and checked
   part by part against its schematic. It is a radio-frequency oscillator on the antenna, which an
   audio-rate solver cannot run, so `simulates: false`. Its two supplied wires are a moisture probe

@@ -256,6 +256,14 @@ confirmed pinouts of §4, and checked against each device's schematic:
   with its W contact on a left clip point, so its switched pair must be E–S. This agrees with the
   pinout device 24 settled: W–E joined, S switched.
 
+- **Device 27** «Двухтональный генератор» (p. 36): the same terminals as device 26. The electrolytic's
+  − side and the кнопка's grounded side reach XT1 over the top strip, the supply reaches XT3 through
+  a «Крест», the output 0,01 µF reaches XT4, and the antenna sits across XT5–XT6. The page also
+  shows a replacement module, a 0,01 µF tee, to be fitted «развернуть на 180°». The registry pinout
+  of block_009 explains the instruction. Turned as specified, the tee simply stands in for the
+  3300 pF. Fitted as drawn, its joined corner reaches the top strip and grounds L2's return, as if
+  the кнопка were always held.
+
 Every layout traced so far ties the top strip to XT1 with a module, so the strip is taken to be
 wired to nothing inside the case. The positions of XT2 and XT7 follow by sequence; no layout traced so
 far touches them decisively.

@@ -56,6 +56,10 @@ also one commit ahead of `origin` (735adbd, the кнопка fix, not pushed).
    - With 1–100 kΩ it oscillates steadily with no audible tone.
    - Unknown whether that is physical or a consequence of the guessed Q/k/β. The manual only says a warning signal sounds, also audible on a nearby long-wave radio.
    - There is also no UI for a probe resistance: leads are plain wires.
+   - Device 27 (p. 36) is the same oscillator with 68 kΩ ∥ 3300 pF ∥ кнопка in place of the probe,
+     and it squegs audibly in both positions. The 3300 pF gives L2's RF current a path around the
+     68 kΩ; a purely resistive probe has none. So what a wet probe really presents at RF (a
+     capacitance across it, or a lower resistance) probably decides whether device 26 squegs.
 3. **Real-time budget.** In Node, device 24 at 48 kHz runs about 1.2× slower than real time.
    - **Split:** the audio-rate half (36 unknowns, dense LU) is now the larger cost; bursts are about 175 ms per 0.5 s.
    - **Engine gap:** `AudioEngine.chooseDivisor` benchmarks the netlist as given, with the button released and no bursts, so it underestimates the cost of the tone.

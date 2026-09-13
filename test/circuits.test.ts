@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CIRCUITS, DEVICE_24, DEVICE_26, DEVICE_6, DEVICE_9, loadCircuit, type Circuit,
+  CIRCUITS, DEVICE_24, DEVICE_26, DEVICE_27, DEVICE_27_ALT, DEVICE_6, DEVICE_9, loadCircuit,
+  type Circuit,
 } from '../src/circuits/index.js';
 import { windingSection } from '../src/model/antenna.js';
 import { Board } from '../src/model/board.js';
@@ -276,7 +277,7 @@ describe('«Пищалка» device 9 matches the factory schematic', () => {
     expect(el?.kind === 'C' && el.a === 'VCC' && el.b === netlist.ground).toBe(true);
   });
 
-  it('leaves the 1 МОм at (1,0), the 12 кОм at (1,4) and the 0,01 мкФ at (0,4) loose at one end', () => {
+  it('leaves the 1 МОм at (1,0), 12 кОм at (1,4) and 0,01 мкФ at (0,4) loose at one end', () => {
     for (const where of ['block_008@1,0', 'block_002@1,4', 'block_013@0,4']) {
       const el = netlist.elements.find((e) => e.name.startsWith(where));
       expect(el?.kind === 'R' || el?.kind === 'C', where).toBe(true);
@@ -298,6 +299,89 @@ function elementTouches(e: Netlist['elements'][number], net: string): boolean {
     default: return false;
   }
 }
+
+/** Device 27's netlist checked part by part against the schematic on page 36, and its variant. */
+describe('«Двухтональный генератор» device 27 matches the factory schematic', () => {
+  const board = new Board();
+  loadCircuit(board, DEVICE_27);
+  const netlist = buildNetlist(board);
+  const joins = joinsIn(netlist);
+  const q = netlist.elements.find((e) => e.kind === 'Q' && e.name.startsWith('block_017'));
+  const ant = netlist.antenna!;
+  const coils = netlist.elements.filter((e) => e.kind === 'L');
+  const l1Start = coils.find((e) => e.kind === 'L' && e.henries === windingSection(100).henries);
+  const l1End = coils.find((e) => e.kind === 'L' && e.henries === windingSection(230).henries);
+  /** L2's return: the far end of the coupling winding from the emitter. */
+  const ret = ant.coupling[0];
+  const keyOf = (n: Netlist) =>
+    n.elements.find((e) => e.kind === 'R' && e.name.startsWith('block_026@'));
+
+  it('fills all 30 cells, with the antenna in its slot', () => {
+    expect(board.placements.size).toBe(31);
+    expect(board.placements.get(`0,${ANTENNA_ROW}`)?.moduleId).toBe('block_019');
+    expect(DEVICE_27.leads ?? []).toHaveLength(0);
+  });
+
+  it('builds the same antenna oscillator as device 26', () => {
+    expect(q?.kind).toBe('Q');
+    if (q?.kind !== 'Q' || l1Start?.kind !== 'L' || l1End?.kind !== 'L') return;
+    expect(ant.tuned).toEqual([FIXED_NETS.C10_A, FIXED_NETS.C10_B]);
+    expect(joins('R', 12_000, 'VCC', FIXED_NETS.C10_A)).toBe(true);
+    expect(joins('C', 0.01e-6, FIXED_NETS.C10_A, 'AMP_IN')).toBe(true);
+    expect(l1Start.b).toBe(q.collector);
+    expect(l1End.a).toBe(q.collector);
+    expect(ant.coupling[1]).toBe(q.emitter);
+  });
+
+  it('biases the base from the supply through 1 МОм, 1 МОм and 680 кОм', () => {
+    if (q?.kind !== 'Q') return;
+    const r = netlist.elements.filter((e) => e.kind === 'R' && e.name.includes('@'));
+    const from = (ohms: number, at: string) =>
+      r.find((e) => e.kind === 'R' && e.ohms === ohms && (e.a === at || e.b === at));
+    const top = from(1_000_000, 'VCC');
+    expect(top?.kind).toBe('R');
+    if (top?.kind !== 'R') return;
+    const y = top.a === 'VCC' ? top.b : top.a;
+    const mid = r.find(
+      (e) => e !== top && e.kind === 'R' && e.ohms === 1_000_000 && [e.a, e.b].includes(y),
+    );
+    expect(mid?.kind).toBe('R');
+    if (mid?.kind !== 'R') return;
+    const z = mid.a === y ? mid.b : mid.a;
+    expect(joins('R', 680_000, z, q.base)).toBe(true);
+  });
+
+  it('returns L2 and the 680 пФ from the base through 68 кОм, 3300 пФ and the кнопка', () => {
+    if (q?.kind !== 'Q') return;
+    expect(joins('C', 680e-12, q.base, ret)).toBe(true);
+    expect(joins('R', 68_000, ret, netlist.ground)).toBe(true);
+    expect(joins('C', 3300e-12, ret, netlist.ground)).toBe(true);
+    const key = keyOf(netlist);
+    expect(key?.kind === 'R' && [key.a, key.b].sort()).toEqual([ret, netlist.ground].sort());
+  });
+
+  it('decouples the supply with 20 мкФ, + on the supply', () => {
+    const el = netlist.elements.find((e) => e.kind === 'C' && e.farads === 20e-6);
+    expect(el?.kind === 'C' && el.a === 'VCC' && el.b === netlist.ground).toBe(true);
+  });
+
+  it('swaps in 0,01 мкФ for the other tones, which only works turned 180° from the drawing', () => {
+    const variant = new Board();
+    loadCircuit(variant, DEVICE_27_ALT);
+    const turned = buildNetlist(variant);
+    expect(joinsIn(turned)('C', 0.01e-6, turned.antenna!.coupling[0], turned.ground)).toBe(true);
+    expect(joinsIn(turned)('C', 3300e-12, turned.antenna!.coupling[0], turned.ground)).toBe(false);
+
+    // As drawn beside the panel, the tee's joined corner reaches the top strip: L2's return is
+    // tied to ground for good.
+    const asDrawn = new Board();
+    loadCircuit(asDrawn, DEVICE_27_ALT);
+    asDrawn.remove({ col: 0, row: 1 });
+    asDrawn.place('block_009', { col: 0, row: 1 }, 3);
+    const shorted = buildNetlist(asDrawn);
+    expect(shorted.antenna!.coupling[0]).toBe(shorted.ground);
+  });
+});
 
 /** Device 24's netlist checked part by part against the schematic on page 33, and its timing. */
 describe('«Реле времени» device 24 matches the factory schematic', () => {
@@ -410,6 +494,12 @@ describe('presets the solver can run', () => {
       }
       if (e.offTuneBelow !== undefined) {
         expect(measure(circuit, { tuning: 0.5 }).level, 'off tune').toBeLessThan(e.offTuneBelow);
+      }
+      if (e.buttonShiftsPitch !== undefined) {
+        const held = measure(circuit, { button: true });
+        expect(held.level, 'with the кнопка held').toBeGreaterThan(e.minRms ?? 0.05);
+        const shift = Math.abs(held.freq - base.freq) / base.freq;
+        expect(shift, 'pitch shift with the кнопка held').toBeGreaterThan(e.buttonShiftsPitch);
       }
     });
   }

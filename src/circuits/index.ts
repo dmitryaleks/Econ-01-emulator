@@ -33,8 +33,8 @@ export interface CircuitExpectation {
   offTuneBelow?: number;
   /** Seconds to simulate before measuring; slow circuits need more. */
   seconds?: number;
-  /** Holding the кнопка must raise the pitch by at least this factor. */
-  buttonRaisesPitch?: number;
+  /** Holding the кнопка must move the pitch, up or down, by at least this fraction. */
+  buttonShiftsPitch?: number;
   /** Near silent until the кнопка is held, then audible. */
   gatedByButton?: boolean;
 }
@@ -233,6 +233,97 @@ export const DEVICE_9: Circuit = {
 };
 
 /**
+ * Device 27 «Двухтональный генератор», page 36 of the manual: the factory mounting drawing,
+ * transcribed cell by cell. All 30 cells are filled and the antenna sits in its slot.
+ *
+ * It is device 26's antenna oscillator with the moisture probe replaced by a two-tone switch.
+ * 12 кОм from the supply feeds the top of L1, C10 is across the whole winding, the collector is
+ * on the tap and L2 is in the emitter. The base is biased from the supply through 1 МОм, 1 МОм
+ * and 680 кОм. L2's return, which also carries the 680 пФ from the base, goes to ground through
+ * 68 кОм, 3300 пФ and the кнопка in parallel. 0,01 мкФ takes the signal from the top of L1 to
+ * XT4, and 20 мкФ decouples the supply.
+ *
+ * The oscillator squegs, and the RC on its return sets how deep each burst pumps the base, so
+ * the кнопка shorting it changes the tone. The 2,2 кОм at (4,1) and the 0,01 мкФ at (0,4) touch
+ * nothing; the 68 кОм at (3,3) touches the base chain at one end only.
+ */
+export const DEVICE_27: Circuit = {
+  id: 'device27',
+  title: 'Двухтональный генератор (устройство 27)',
+  description:
+    'Заводская схема со страницы 36 руководства. Частота колебаний генератора зависит от ' +
+    'положения кнопки: нажата — одна, отпущена — другая. В цепь питания генератора включена ' +
+    'цепочка из параллельно соединённых резистора и конденсатора; кнопка её закорачивает. ' +
+    'Громкость установите регулятором. Раскладка повторяет заводской рисунок: заняты все ' +
+    '30 гнёзд.',
+  source: 'manual page 36, device 27: factory mounting drawing, transcribed cell by cell',
+  kitLegal: true,
+  simulates: true,
+  volume: 0.5,
+  placements: [
+    { col: 0, row: 0, moduleId: 'block_023', rotation: 1 }, // «Линия»: to the top strip
+    { col: 1, row: 0, moduleId: 'block_024', rotation: 1 }, // «Тройник»: кнопка to the strip
+    { col: 2, row: 0, moduleId: 'block_023', rotation: 0 }, // «Линия»
+    { col: 3, row: 0, moduleId: 'block_003', rotation: 3 }, // 68 кОм from L2's return
+    { col: 4, row: 0, moduleId: 'block_022', rotation: 0 }, // «Щель»
+    { col: 5, row: 0, moduleId: 'block_014', rotation: 3 }, // 20 мкФ: − and the strip on XT1
+
+    { col: 0, row: 1, moduleId: 'block_011', rotation: 1 }, // 3300 пФ from L2's return
+    { col: 1, row: 1, moduleId: 'block_026', rotation: 2 }, // кнопка: W–E joined, N switched
+    { col: 2, row: 1, moduleId: 'block_024', rotation: 0 }, // «Тройник»
+    { col: 3, row: 1, moduleId: 'block_024', rotation: 1 }, // «Тройник»
+    { col: 4, row: 1, moduleId: 'block_001', rotation: 1 }, // 2,2 кОм, spare
+    { col: 5, row: 1, moduleId: 'block_023', rotation: 1 }, // «Линия»
+
+    { col: 0, row: 2, moduleId: 'block_020', rotation: 2 }, // «Угол»
+    { col: 1, row: 2, moduleId: 'block_007', rotation: 1 }, // 1 МОм base bias
+    { col: 2, row: 2, moduleId: 'block_025', rotation: 0 }, // «Мостик»
+    { col: 3, row: 2, moduleId: 'block_008', rotation: 2 }, // 1 МОм base bias, from supply
+    { col: 4, row: 2, moduleId: 'block_002', rotation: 0 }, // 12 кОм collector feed
+    { col: 5, row: 2, moduleId: 'block_021', rotation: 0 }, // «Крест»: E on XT3
+
+    { col: 0, row: 3, moduleId: 'block_025', rotation: 1 }, // «Мостик»
+    { col: 1, row: 3, moduleId: 'block_025', rotation: 1 }, // «Мостик»
+    { col: 2, row: 3, moduleId: 'block_023', rotation: 1 }, // «Линия»
+    { col: 3, row: 3, moduleId: 'block_004', rotation: 3 }, // 68 кОм, spare: one end loose
+    { col: 4, row: 3, moduleId: 'block_024', rotation: 3 }, // «Тройник»
+    { col: 5, row: 3, moduleId: 'block_012', rotation: 2 }, // 0,01 мкФ output: E on XT4
+
+    { col: 0, row: 4, moduleId: 'block_013', rotation: 1 }, // 0,01 мкФ, spare
+    { col: 1, row: 4, moduleId: 'block_006', rotation: 2 }, // 680 кОм base bias, to the base
+    { col: 2, row: 4, moduleId: 'block_010', rotation: 0 }, // 680 пФ base to L2's return
+    { col: 3, row: 4, moduleId: 'block_017', rotation: 0 }, // КТ315Б
+    { col: 4, row: 4, moduleId: 'block_025', rotation: 1 }, // «Мостик»
+    { col: 5, row: 4, moduleId: 'block_022', rotation: 1 }, // «Щель»: E on XT5
+
+    { col: 0, row: ANTENNA_ROW, moduleId: 'block_019' }, // антенна: E end on XT6
+  ],
+  expect: { minRms: 0.5, freqHz: [1100, 1450], buttonShiftsPitch: 0.08 },
+};
+
+/**
+ * The other pair of tones page 36 offers: the 3300 пФ at (0,1), outlined on the drawing, gives way
+ * to the 0,01 мкФ tee drawn beside the panel, turned 180° from how it is drawn. Turned that way its
+ * joined corner meets the кнопка and a dead clip point, so the larger capacitor simply takes the
+ * 3300 пФ's place. Fitted as drawn, the joined corner would reach the top strip and tie L2's
+ * return straight to ground, as if the кнопка were always held.
+ */
+export const DEVICE_27_ALT: Circuit = {
+  ...DEVICE_27,
+  id: 'device27b',
+  title: 'Двухтональный генератор, другие тона (устройство 27)',
+  description:
+    'Вариант со страницы 36 руководства: вместо выделенного на рисунке конденсатора 3300 пФ ' +
+    'стоит модуль 0,01 мкФ, развёрнутый на 180° по отношению к изображённому справа. ' +
+    'Тон при отпущенной кнопке становится ниже; нажатая кнопка по-прежнему закорачивает цепочку.',
+  source: 'manual page 36, device 27: the replacement module drawn beside the panel',
+  placements: DEVICE_27.placements.map((p) =>
+    p.col === 0 && p.row === 1 ? { col: 0, row: 1, moduleId: 'block_009', rotation: 1 } : p,
+  ),
+  expect: { minRms: 0.5, freqHz: [1000, 1250], buttonShiftsPitch: 0.02 },
+};
+
+/**
  * Device 26 «Электронная няня», page 35 of the manual: the factory mounting drawing, transcribed
  * cell by cell like device 6. All 30 cells are filled and the antenna sits in its slot.
  *
@@ -373,7 +464,9 @@ export const DEVICE_24: Circuit = {
   expect: {},
 };
 
-export const CIRCUITS: Circuit[] = [DETECTOR_RECEIVER, DEVICE_6, DEVICE_9, DEVICE_24, DEVICE_26];
+export const CIRCUITS: Circuit[] = [
+  DETECTOR_RECEIVER, DEVICE_6, DEVICE_9, DEVICE_24, DEVICE_26, DEVICE_27, DEVICE_27_ALT,
+];
 
 export function loadCircuit(board: Board, circuit: Circuit): void {
   board.clear();
