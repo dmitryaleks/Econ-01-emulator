@@ -47,10 +47,11 @@ oscillator at 294 kHz keeps choking itself.
 | Side A: The machine | Side B: How it was done |
 |---|---|
 | [A1 · The device](#a1--the-device) | [B1 · Reverse engineering, human in the loop](#b1--reverse-engineering-human-in-the-loop) |
-| [A2 · See it run](#a2--see-it-run) | [B2 · Circuit math in real time](#b2--circuit-math-in-real-time) |
-| [A3 · Oscilloscope party](#a3--oscilloscope-party) | [B3 · Power meter: the token budget](#b3--power-meter-the-token-budget) |
-| [A4 · Presets](#a4--presets) | [B4 · Known glitches](#b4--known-glitches) |
-| [A5 · Quick start](#a5--quick-start) | [B5 · Repository map and sources](#b5--repository-map-and-sources) |
+| [A2 · Player one: build a time relay](#a2--player-one-build-a-time-relay) | [B2 · Circuit math in real time](#b2--circuit-math-in-real-time) |
+| [A3 · See it run](#a3--see-it-run) | [B3 · Power meter: the token budget](#b3--power-meter-the-token-budget) |
+| [A4 · Oscilloscope party](#a4--oscilloscope-party) | [B4 · Known glitches](#b4--known-glitches) |
+| [A5 · Presets](#a5--presets) | [B5 · Repository map and sources](#b5--repository-map-and-sources) |
+| [A6 · Quick start](#a6--quick-start) | |
 
 ---
 
@@ -80,7 +81,100 @@ emulator ships three skins: the grey and black production cases, colour-sampled 
 
 ---
 
-## A2 · See it run
+## A2 · Player one: build a time relay
+
+A preset loads a factory device in one click. This chapter takes the long way round, the way the
+kit was meant to be played: an empty field, the manual's mounting drawing for **device 24
+«Реле времени»** (page 33), 30 cubes, the antenna bar and a lot of turning.
+
+Open the [live build](https://dmitryaleks.github.io/Econ-01-emulator/). It starts with the field
+empty and the kit's own stock in the **МОДУЛИ** bin on the right. The number beside each cube is
+how many the box holds. **«Свободный режим»** lifts those limits and **«Очистить поле»** empties
+the field.
+
+### The controls
+
+| Do | What happens |
+|---|---|
+| Press a cube in the bin | it sticks to the pointer (**Esc** lets go of it) |
+| Press on a cell | the cube goes in, facing the way the bin draws it |
+| Click it, right-click it, or hover and press **R** | a quarter turn clockwise ↻ |
+| **Shift**+click, or hover and press **Shift+R** | a quarter turn anticlockwise ↺ |
+| **Alt**+click | the cube goes back into the bin |
+| Hover a cube for a second | its full name, e.g. «Резистор МЛТ-0,5-68 кОм±10%» |
+| Hover a contact pad | every pad on the same net lights up |
+| Click a contact pad | a scope probe clips on; two at most, click again to unclip |
+| Press the кнопка by its black cap | the key stays down for as long as the mouse button does |
+| Drag the **ВКЛ.** thumbwheel to the right | power on, then louder |
+
+A plain click on the кнопка's cap presses the key, so turn the кнопка with right-click, **R** or
+**Shift**+click.
+
+### 1 · Place and turn
+
+<p align="center"><img src="docs/readme/gameplay_build.gif" alt="Picking cubes from the bin, dropping them into row 1 and turning each one with clicks and Shift+clicks" width="100%"></p>
+
+The mounting drawing shows every cube turned as fitted, and the emulator is as strict as the
+manual. A cube in the right cell facing the wrong way is a different circuit, usually a silent
+one. Row 1 takes six picks, six drops and eight turns: two clicks for the 2,2 кОм, a Shift+click
+to bring the 20 мкФ back a quarter, nothing for the «Мостик», and so on along the row.
+
+### 2 · Fill the field
+
+<p align="center"><img src="docs/readme/gameplay_fill.gif" alt="Time-lapse: rows 2 to 5 fill up one cube at a time, the antenna bar goes into its slot, the bin empties" width="100%"></p>
+
+The whole drawing, rows numbered as on the panel's right edge:
+
+| Row | 1 | 2 | 3 | 4 | 5 | 6 |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| **1** | 2,2 кОм ↻↻ | 20 мкФ² ↺ | «Мостик» | «Тройник» ↻↻ | «Тройник» ↻↻ | 20 мкФ¹ ↺ |
+| **2** | 2,2 кОм ↻↻ | кнопка ↺ | «Линия» | 68 кОм¹ ↺ | «Мостик» | «Линия» ↻ |
+| **3** | «Линия» ↻ | 680 кОм¹ ↻ | «Угол» ↺ | 1 МОм¹ ↻↻ | 12 кОм | «Крест» |
+| **4** | «Тройник» ↺ | «Мостик» | 68 кОм² | «Линия» | «Тройник» ↺ | 0,01 мкФ² ↻↻ |
+| **5** | 3300 пФ ↻ | 680 кОм² ↻↻ | 680 пФ | КТ315Б¹ | «Мостик» | «Щель» ↻ |
+
+**Row 6** is the long slot: the **антенна** bar drops in as it is, no turning. **Row 7** stays
+empty.
+
+- **↻** is one click, a quarter turn clockwise. **↺** is one Shift+click, a quarter turn back;
+  three clicks do the same.
+- **¹ ²** mean the first or second bin entry with that name. The bin lists identical cubes once,
+  with a count, so two entries with one value are two different cubes: the same part, wired to
+  different faces, and no amount of turning makes one into the other.
+
+### 3 · Power, key, scope
+
+<p align="center"><img src="docs/readme/gameplay_power.gif" alt="Switching the sound on, rolling the thumbwheel, holding the key while the scope shows bursts, then clipping two probes onto the capacitor and the transistor base" width="100%"></p>
+
+1. **«Включить звук».** Browsers keep a page silent until it is clicked, and this is that click.
+2. **Roll the ВКЛ. thumbwheel to the right.** On the real kit it is the power switch and the volume
+   control in one. The status line under the scope changes from «ожидание» to «питание подано»,
+   followed by the rate the solver has picked for your machine (here «решатель 48 кГц»).
+3. **Hold the кнопка.** With no probes clipped, the scope shows the loudspeaker: bursts that come
+   closer together as the 20 мкФ capacitor charges, and a tone that climbs with them.
+4. **Let go.** The tone carries on while the capacitor still holds enough charge to feed the
+   oscillator. That delay is the "relay".
+5. **Clip two probes.** The scope switches from the loudspeaker to the probes, labelled by cell and
+   face and counted from zero. `1,2·N` is the top pad of row 3, column 2, on the capacitor's net.
+   `1,4·E` is the right pad of row 5, column 2, on the transistor's base. On this time scale CH1
+   barely moves. CH2 is the squegging itself: every burst of radio frequency kicks the base down,
+   and it climbs back until the next burst fires.
+
+[A3](#a3--see-it-run) has the physics, a longer run with the pitch plotted, and the sound.
+
+**Silent?** Check the turns first: one cube facing the wrong way is enough. Hover a contact pad to
+see what it is joined to, and Alt+click to pull a cube and try again. A zero in the bin means that
+cube is already in use somewhere else on the field. Still silent? Pick «Реле времени (устройство 24)»
+from the list on the right: it replaces your field with the same drawing, placed for you.
+
+> The three GIFs are the live app in headless Chrome, driven by real mouse events through
+> Playwright and captured frame by frame at their real timing (step 2 is sped up). The pointer, the
+> click rings and the caption bar are drawn on afterwards. The field built by these moves matches
+> the device 24 preset pixel for pixel.
+
+---
+
+## A3 · See it run
 
 ### Device 24 «Реле времени» (Time relay)
 
@@ -122,7 +216,7 @@ and you have a siren: *«нажимая и отпуская кнопку, мож
 
 ---
 
-## A3 · Oscilloscope party
+## A4 · Oscilloscope party
 
 Clip up to two probes onto any contact and the scope shows real node voltages. Six presets,
 probed where it gets interesting, each with what it sounds like:
@@ -179,7 +273,7 @@ current, from a brute-force reference simulation.
 
 ---
 
-## A4 · Presets
+## A5 · Presets
 
 Each factory preset is the manual's **mounting drawing transcribed cell by cell**: all 30 cells,
 spares included, turned as drawn. Its netlist is checked against the printed schematic by a test.
@@ -202,7 +296,7 @@ spares included, turned as drawn. Its netlist is checked against the printed sch
 
 ---
 
-## A5 · Quick start
+## A6 · Quick start
 
 **No install:** the [experimental live build](https://dmitryaleks.github.io/Econ-01-emulator/) runs entirely in the browser. Pick a preset on
 the right, press «Включить звук» to start the audio, and hold the кнопка by its black cap. GitHub
@@ -225,7 +319,8 @@ npm run build      # type-check and bundle to dist/
 
 **Drag** a module from the bin onto the field. **Click**, right-click or press **R** to turn it,
 and **Alt+click** to pull it. **Click a contact** to clip a probe. **Press the кнопка** by its black
-cap. **Free-play mode** lifts the kit's module counts.
+cap. **Free-play mode** lifts the kit's module counts. The full controls, and a build from an empty
+field, are in [A2](#a2--player-one-build-a-time-relay).
 
 ---
 
