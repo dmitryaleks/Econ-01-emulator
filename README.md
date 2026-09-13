@@ -35,6 +35,11 @@ oscillator at 294 kHz keeps choking itself.
 > **[C]**onfirmed, **[I]**nferred or **[G]**uessed in [`SPEC.md`](SPEC.md); what still does not work
 > is written down in [`UNSOLVED.md`](UNSOLVED.md).
 
+<p align="center">
+  <a href="https://dmitryaleks.github.io/Econ-01-emulator/"><b>▶ PLAY IT IN YOUR BROWSER</b></a>&nbsp;&nbsp;<sub><code>EXPERIMENTAL</code></sub><br>
+  <sub>https://dmitryaleks.github.io/Econ-01-emulator/ · nothing to install · desktop Chrome, Edge or Firefox recommended</sub>
+</p>
+
 ---
 
 ## ▓▒░ TRACK LIST
@@ -198,6 +203,18 @@ spares included, turned as drawn. Its netlist is checked against the printed sch
 ---
 
 ## A5 · Quick start
+
+**No install:** the [experimental live build](https://dmitryaleks.github.io/Econ-01-emulator/) runs entirely in the browser. Pick a preset on
+the right, press «Включить звук» to start the audio, and hold the кнопка by its black cap. GitHub
+Pages serves it as static files, and every push to `main` that touches the app rebuilds it
+([`.github/workflows/pages.yml`](.github/workflows/pages.yml)). Expect rough edges:
+
+- **Devices 6 and 15** switch too fast for most browsers to keep up; the status line says when.
+- **Device 29** is picked a sample rate too low to tick evenly.
+- **Phones** can load the kit but are slow to solve it, and dragging modules is awkward on a small
+  screen.
+
+**From source:**
 
 ```bash
 npm install
@@ -598,6 +615,7 @@ assets/
   the-original-econ-01-body.jpg   the square-on photograph the panel is measured from
 docs/readme/     this README's images, GIFs and sound samples
 test/            solver, netlist, schematic matcher, preset behaviour and timing
+.github/workflows/pages.yml   builds the app and publishes it to GitHub Pages
 SPEC.md          the reverse-engineered device, every claim tagged [C] [I] [G]
 DEVPLAN.md       phases, decisions, what was tried and why it failed
 UNSOLVED.md      what does not work yet
