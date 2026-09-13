@@ -97,13 +97,15 @@ export class Board {
     return p.moduleId;
   }
 
-  rotate(cell: Cell, by: 1 | -1 = 1): void {
+  /** Turn the module at this cell a quarter. Returns false when there is none or it cannot turn. */
+  rotate(cell: Cell, by: 1 | -1 = 1): boolean {
     const owner = this.ownerOf(cell);
-    if (!owner) return;
+    if (!owner) return false;
     const p = this.placements.get(owner)!;
     const def = MODULE_BY_ID.get(p.moduleId);
-    if (def?.rotatable === false) return;
+    if (def?.rotatable === false) return false;
     p.rotation = ((((p.rotation + by) % 4) + 4) % 4) as Rotation;
+    return true;
   }
 
   /** How many of this module type are still in the parts bin. */

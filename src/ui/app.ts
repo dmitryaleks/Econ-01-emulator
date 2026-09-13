@@ -1,5 +1,6 @@
 /** Wires the panel, the parts bin, the solver and the audio engine together. */
 
+import { ClickSounds } from '../audio/clicks.js';
 import { AudioEngine } from '../audio/engine.js';
 import { Board, POWER_THRESHOLD } from '../model/board.js';
 import { ALL_MODULES, CATALOGUE, MODULE_BY_ID } from '../model/catalogue.js';
@@ -25,6 +26,7 @@ export class App {
   private readonly panel: PanelCanvas;
   private readonly scope: Scope;
   private readonly audio = new AudioEngine();
+  private readonly clicks = new ClickSounds();
 
   /** Mirror of the worklet's circuit, used to drive the scope on the main thread. */
   private mirror: Simulation | null = null;
@@ -184,11 +186,11 @@ export class App {
       if (hit.kind === 'cell' || hit.kind === 'contact') {
         if (!this.board.defAt(hit.cell)) return;
         if (ev.button === 2 || ev.shiftKey) {
-          this.board.rotate(hit.cell, ev.shiftKey && ev.button !== 2 ? -1 : 1);
+          this.turn(hit.cell, ev.shiftKey && ev.button !== 2 ? -1 : 1);
         } else if (ev.altKey) {
           this.board.remove(hit.cell);
         } else {
-          this.board.rotate(hit.cell, 1);
+          this.turn(hit.cell, 1);
         }
         this.rebuild();
       }
@@ -253,10 +255,15 @@ export class App {
         const hit = this.panel.hitTest(this.pointer.x, this.pointer.y);
         if (!hit || (hit.kind !== 'cell' && hit.kind !== 'contact')) return;
         if (!this.board.defAt(hit.cell)) return;
-        this.board.rotate(hit.cell, ev.shiftKey ? -1 : 1);
+        this.turn(hit.cell, ev.shiftKey ? -1 : 1);
         this.rebuild();
       }
     });
+  }
+
+  /** Turn a module a quarter, with the tick of its detent. */
+  private turn(cell: Cell, by: 1 | -1): void {
+    if (this.board.rotate(cell, by)) this.clicks.play('turn');
   }
 
   private dropModule(hit: Hit): void {
@@ -270,7 +277,7 @@ export class App {
     }
     const def = MODULE_BY_ID.get(id);
     const cell: Cell = def && def.width > 1 ? { col: 0, row: ANTENNA_ROW } : hit.cell;
-    this.board.place(id, cell);
+    if (this.board.place(id, cell)) this.clicks.play('seat');
     this.rebuild();
   }
 
