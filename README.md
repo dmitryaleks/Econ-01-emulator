@@ -7,7 +7,7 @@
   <code>▶ 26 MODULE TYPES</code>&nbsp;
   <code>▶ 5 TRANSISTORS OF BUILT-IN AMP</code>&nbsp;
   <code>▶ 110 TESTS</code>&nbsp;
-  <code>▶ 0 RECORDED SOUNDS</code>
+  <code>▶ 12 SIMULATED SOUND SAMPLES</code>
 </p>
 
 ```text
